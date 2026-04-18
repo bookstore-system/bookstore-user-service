@@ -16,8 +16,8 @@ services:
       start_period: 30s
 
   app:
-    build: .
     image: truongikpk/bookstore-user-service:v1.0.0
+    pull_policy: always
     depends_on:
       mysql:
         condition: service_healthy
