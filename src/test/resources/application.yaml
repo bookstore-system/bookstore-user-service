@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:bookstore_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  jwt:
+    secret: test-jwt-secret-for-unit-tests-must-be-non-empty-string-value
+    expiration-ms: 3600000

@@ -1,3 +1,22 @@
 spring:
   application:
     name: bookstore-user-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/bookstore_user?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: root
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+    expiration-ms: 86400000
+
+server:
+  port: 8080
