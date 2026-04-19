@@ -65,6 +65,18 @@ public class AuthService {
                 token, "Bearer", jwtService.getExpirationSeconds(), toResponse(user));
     }
 
+    public boolean introspect(String token) {
+        try {
+            // Giải mã token, nếu hết hạn hoặc invalid (HMAC sai) sẽ văng Exception
+            String subject = jwtService.extractSubject(token);
+            // Dạng cơ bản: Pass HMAC và Expiration là hợp lệ.
+            // Có thể bổ sung query CSDL để kiểm tra token có bị blacklist hay không ở đây.
+            return subject != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private static UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId(), user.getEmail(), user.getFullName(), user.getCreatedAt());
