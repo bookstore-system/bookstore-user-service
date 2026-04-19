@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  user-db:
+    image: mysql:8.0
+    container_name: user-db
+    environment:
+      MYSQL_DATABASE: bookstore_user
+      MYSQL_USER: bookstore
+      MYSQL_PASSWORD: bookstore
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - user_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - bookstore-network
+
+  user-service:
+    image: truongikpk/bookstore-user-service:v1.0.0
+    container_name: user-service
+    depends_on:
+      user-db:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://user-db:3306/bookstore_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: bookstore
+      SPRING_DATASOURCE_PASSWORD: bookstore
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      APP_JWT_SECRET: change-me-in-production-use-long-random-string-at-least-32-chars
+    networks:
+      - bookstore-network
+
+volumes:
+  user_mysql_data:
+
+networks:
+  bookstore-network:
+    name: bookstore-network
