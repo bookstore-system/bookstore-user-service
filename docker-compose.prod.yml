@@ -21,19 +21,13 @@ services:
       - bookstore-network
 
   user-service:
-    build: 
-      context: .
-      target: build
+    image: truongikpk/bookstore-user-service:v1.0.0
     container_name: user-service
     depends_on:
       user-db:
         condition: service_healthy
     ports:
       - "8081:8080"
-    volumes:
-      - .:/build
-      - ~/.m2:/root/.m2
-    command: mvn spring-boot:run -Dspring-boot.run.profiles=docker
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:mysql://user-db:3306/bookstore_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
