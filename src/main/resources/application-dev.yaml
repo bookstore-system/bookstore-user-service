@@ -3,3 +3,15 @@ spring:
     url: jdbc:mysql://mysql:3306/bookstore_user?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: ${SPRING_DATASOURCE_USERNAME:bookstore}
     password: ${SPRING_DATASOURCE_PASSWORD:bookstore}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+    expiration-ms: 86400000
+
