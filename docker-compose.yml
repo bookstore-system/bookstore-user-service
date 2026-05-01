@@ -20,6 +20,19 @@ services:
     networks:
       - bookstore-network
 
+  user-redis:
+    image: redis:7.2-alpine
+    container_name: user-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - bookstore-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   user-service:
     build: 
       context: .
@@ -27,6 +40,8 @@ services:
     container_name: user-service
     depends_on:
       user-db:
+        condition: service_healthy
+      user-redis:
         condition: service_healthy
     ports:
       - "8081:8080"
@@ -39,8 +54,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://user-db:3306/bookstore_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: bookstore
       SPRING_DATASOURCE_PASSWORD: bookstore
-      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_DATA_REDIS_HOST: user-redis
+      SPRING_DATA_REDIS_PORT: 6379
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
     networks:
       - bookstore-network
 

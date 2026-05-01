@@ -5,13 +5,21 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:bookstore}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 5000
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
 
+# RS256 JWT Configuration
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+    keystore-path: keys/keystore.p12
+    keystore-password: ${APP_JWT_KEYSTORE_PASSWORD:bookstore-secret}
+    key-alias: jwt
     expiration-ms: 86400000
-
