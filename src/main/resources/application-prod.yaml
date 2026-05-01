@@ -10,9 +10,8 @@ spring:
       ddl-auto: update
     show-sql: false
 
+# RS256 JWT Configuration
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
-    expiration-ms: 86400000
-
-
+    expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
+    refresh-expiration-ms: ${APP_JWT_REFRESH_EXPIRATION_MS:604800000}

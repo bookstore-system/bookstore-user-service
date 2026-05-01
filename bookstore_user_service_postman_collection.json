@@ -1,0 +1,620 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-1234-56789abcdef0",
+		"name": "Bookstore User Service API",
+		"description": "Bộ sưu tập đầy đủ tất cả API của Bookstore User Service.\n\n**Hướng dẫn sử dụng:**\n1. Gọi Login hoặc Register để lấy token\n2. Copy giá trị `token` từ response\n3. Dán vào biến `accessToken` trong collection variables\n4. Các API yêu cầu xác thực sẽ tự động dùng token này",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Auth",
+			"description": "Các API xác thực: đăng ký, đăng nhập, đổi mật khẩu, OTP, xác thực email, refresh token",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"testuser@example.com\",\n    \"password\": \"password123\",\n    \"fullName\": \"Test User\",\n    \"phoneNumber\": \"0123456789\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.result && jsonData.result.token) {",
+									"    pm.collectionVariables.set('accessToken', jsonData.result.token);",
+									"    console.log('Token saved to accessToken variable');",
+									"}",
+									"if (jsonData.result && jsonData.result.refreshToken) {",
+									"    pm.collectionVariables.set('refreshToken', jsonData.result.refreshToken);",
+									"    console.log('Refresh token saved');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oldPassword\": \"admin\",\n    \"newPassword\": \"newPassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/change-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "change-password"]
+						}
+					}
+				},
+				{
+					"name": "Send OTP (Forgot Password)",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"testuser@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/send-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "send-otp"]
+						}
+					}
+				},
+				{
+					"name": "Verify OTP & Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"testuser@example.com\",\n    \"otp\": \"123456\",\n    \"newPassword\": \"newPassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/verify-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "verify-otp"]
+						}
+					}
+				},
+				{
+					"name": "Send Verification Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"testuser@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/verify-email",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "verify-email"]
+						}
+					}
+				},
+				{
+					"name": "Confirm Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/confirm-email?token=YOUR_EMAIL_TOKEN",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "confirm-email"],
+							"query": [{"key": "token", "value": "YOUR_EMAIL_TOKEN"}]
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.result && jsonData.result.token) {",
+									"    pm.collectionVariables.set('accessToken', jsonData.result.token);",
+									"    console.log('New access token saved');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/refresh-token",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "refresh-token"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👤 User Profile",
+			"description": "API cho user tự quản lý thông tin cá nhân (yêu cầu đăng nhập)",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Update My Profile",
+					"request": {
+						"method": "PUT",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{"key": "fullName", "value": "Nguyễn Văn A", "type": "text"},
+								{"key": "phoneNumber", "value": "0987654321", "type": "text"},
+								{"key": "gender", "value": "male", "type": "text"},
+								{"key": "dateOfBirth", "value": "2000-01-15", "type": "text"}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "profile"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📍 Address",
+			"description": "API quản lý địa chỉ giao hàng (yêu cầu role CUSTOMER hoặc ADMIN)",
+			"item": [
+				{
+					"name": "Get My Addresses",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/addresses",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "addresses"]
+						}
+					}
+				},
+				{
+					"name": "Create Address",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"receiverName\": \"Nguyễn Văn A\",\n    \"phoneNumber\": \"0987654321\",\n    \"province\": \"Hồ Chí Minh\",\n    \"district\": \"Quận 1\",\n    \"ward\": \"Phường Bến Nghé\",\n    \"streetAddress\": \"123 Lê Lợi\",\n    \"isDefault\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/addresses",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "addresses"]
+						}
+					}
+				},
+				{
+					"name": "Get Address By ID",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/addresses/{{addressId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "addresses", "{{addressId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Address",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"receiverName\": \"Nguyễn Văn B\",\n    \"phoneNumber\": \"0912345678\",\n    \"province\": \"Hà Nội\",\n    \"district\": \"Quận Hoàn Kiếm\",\n    \"ward\": \"Phường Tràng Tiền\",\n    \"streetAddress\": \"456 Hàng Bài\",\n    \"isDefault\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/addresses/{{addressId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "addresses", "{{addressId}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Address",
+					"request": {
+						"method": "DELETE",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/addresses/{{addressId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "addresses", "{{addressId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "❤️ Wishlist",
+			"description": "API quản lý danh sách yêu thích (yêu cầu đăng nhập)",
+			"item": [
+				{
+					"name": "Get My Wishlist",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/wishlist",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "wishlist"]
+						}
+					}
+				},
+				{
+					"name": "Add Book to Wishlist",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"bookId\": \"123e4567-e89b-12d3-a456-426614174000\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/wishlist",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "wishlist"]
+						}
+					}
+				},
+				{
+					"name": "Remove Book from Wishlist",
+					"request": {
+						"method": "DELETE",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/wishlist/{{bookId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "wishlist", "{{bookId}}"]
+						}
+					}
+				},
+				{
+					"name": "Clear Wishlist",
+					"request": {
+						"method": "DELETE",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/wishlist",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "wishlist"]
+						}
+					}
+				},
+				{
+					"name": "Check Book in Wishlist",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/wishlist/check/{{bookId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "wishlist", "check", "{{bookId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🛡️ Admin - User Management",
+			"description": "API quản trị user (yêu cầu role ADMIN). Đăng nhập bằng tài khoản admin trước khi test.",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users?page=0&size=10&sortBy=username&sortDirection=asc",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users"],
+							"query": [
+								{"key": "page", "value": "0"},
+								{"key": "size", "value": "10"},
+								{"key": "search", "value": "", "disabled": true},
+								{"key": "role", "value": "CUSTOMER", "disabled": true},
+								{"key": "status", "value": "active", "disabled": true},
+								{"key": "sortBy", "value": "username"},
+								{"key": "sortDirection", "value": "asc"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get User By ID",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "{{userId}}"]
+						}
+					}
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"newuser\",\n    \"email\": \"newuser@example.com\",\n    \"password\": \"pass123\",\n    \"fullName\": \"New User\",\n    \"phoneNumber\": \"0111222333\",\n    \"role\": \"CUSTOMER\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users"]
+						}
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fullName\": \"Updated Name\",\n    \"email\": \"updated@example.com\",\n    \"phoneNumber\": \"0999888777\",\n    \"gender\": \"male\",\n    \"dateOfBirth\": \"1995-06-15\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "{{userId}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "{{userId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update User Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"},
+							{"key": "Authorization", "value": "Bearer {{accessToken}}"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"inactive\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "{{userId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Ban User",
+					"request": {
+						"method": "PATCH",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/ban",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "{{userId}}", "ban"]
+						}
+					}
+				},
+				{
+					"name": "Unban User",
+					"request": {
+						"method": "PATCH",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/unban",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "{{userId}}", "unban"]
+						}
+					}
+				},
+				{
+					"name": "Get User Statistics",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/statistics",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "statistics"],
+							"query": [
+								{"key": "startDate", "value": "2026-01-01", "disabled": true},
+								{"key": "endDate", "value": "2026-12-31", "disabled": true}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Top Spenders",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/top-spenders?limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "top-spenders"],
+							"query": [{"key": "limit", "value": "10"}]
+						}
+					}
+				},
+				{
+					"name": "Get Top Buyers",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/top-buyers?limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "top-buyers"],
+							"query": [{"key": "limit", "value": "10"}]
+						}
+					}
+				},
+				{
+					"name": "Get New Users",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/new?days=7",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "new"],
+							"query": [{"key": "days", "value": "7"}]
+						}
+					}
+				},
+				{
+					"name": "Export Users to Excel",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/users/export",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "users", "export"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "PASTE_USER_UUID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "addressId",
+			"value": "PASTE_ADDRESS_UUID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "bookId",
+			"value": "123e4567-e89b-12d3-a456-426614174000",
+			"type": "string"
+		}
+	]
+}
