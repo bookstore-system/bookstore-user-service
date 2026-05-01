@@ -19,7 +19,5 @@ spring:
 # RS256 JWT Configuration
 app:
   jwt:
-    keystore-path: keys/keystore.p12
-    keystore-password: ${APP_JWT_KEYSTORE_PASSWORD:bookstore-secret}
-    key-alias: jwt
-    expiration-ms: 86400000
+    expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
+    refresh-expiration-ms: ${APP_JWT_REFRESH_EXPIRATION_MS:604800000}

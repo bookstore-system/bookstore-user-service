@@ -3,13 +3,13 @@ package com.notfound.userservice.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import java.io.InputStream;
 import java.security.*;
-import java.security.cert.Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
@@ -19,10 +19,6 @@ import java.util.function.Function;
  *
  * - User Service: dùng PRIVATE KEY để KÝ (sign) token.
  * - API Gateway: dùng PUBLIC KEY để XÁC THỰC (verify) token.
- *
- * Flow theo plan.md:
- *   Login:   Client → Gateway → User Service → sign JWT bằng private key → trả về client
- *   Request: Client → Gateway → verify JWT bằng public key → inject headers → forward
  */
 @Service
 public class JwtService {
@@ -33,27 +29,27 @@ public class JwtService {
     private final long refreshExpirationMs;
 
     public JwtService(
-            @Value("${app.jwt.keystore-path:keys/keystore.p12}") String keystorePath,
-            @Value("${app.jwt.keystore-password:bookstore-secret}") String keystorePassword,
-            @Value("${app.jwt.key-alias:jwt}") String keyAlias,
+            @Value("${APP_JWT_PRIVATE_KEY}") String privateKeyStr,
+            @Value("${APP_JWT_PUBLIC_KEY}") String publicKeyStr,
             @Value("${app.jwt.expiration-ms:86400000}") long expirationMs,
             @Value("${app.jwt.refresh-expiration-ms:604800000}") long refreshExpirationMs) {
         try {
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            InputStream is = new ClassPathResource(keystorePath).getInputStream();
-            keyStore.load(is, keystorePassword.toCharArray());
-            is.close();
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 
-            // Private key dùng để ký token
-            this.privateKey = (PrivateKey) keyStore.getKey(keyAlias, keystorePassword.toCharArray());
+            // Private key dùng để ký token (PKCS#8)
+            byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyStr);
+            PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+            this.privateKey = keyFactory.generatePrivate(privateKeySpec);
 
-            // Public key dùng để verify token
-            Certificate cert = keyStore.getCertificate(keyAlias);
-            this.publicKey = cert.getPublicKey();
+            // Public key dùng để verify token (X.509)
+            byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyStr);
+            X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+            this.publicKey = keyFactory.generatePublic(publicKeySpec);
+
             this.expirationMs = expirationMs;
             this.refreshExpirationMs = refreshExpirationMs;
         } catch (Exception e) {
-            throw new IllegalStateException("Không thể load RSA keypair từ keystore: " + keystorePath, e);
+            throw new IllegalStateException("Không thể load RSA keypair từ environment variables", e);
         }
     }
 
