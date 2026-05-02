@@ -2,12 +2,14 @@ package com.notfound.userservice.service.impl;
 
 import com.notfound.userservice.model.dto.request.CreateAddressRequest;
 import com.notfound.userservice.model.dto.request.UpdateAddressRequest;
+import com.notfound.userservice.model.dto.response.AddressDetailResponse;
 import com.notfound.userservice.model.dto.response.AddressResponse;
 import com.notfound.userservice.model.entity.Address;
 import com.notfound.userservice.model.entity.User;
 import com.notfound.userservice.model.mapper.AddressMapper;
 import com.notfound.userservice.repository.AddressRepository;
 import com.notfound.userservice.repository.UserRepository;
+import com.notfound.userservice.exception.ResourceNotFoundException;
 import com.notfound.userservice.service.AddressService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -77,6 +79,13 @@ public class AddressServiceImpl implements AddressService {
         User currentUser = getCurrentUser();
         List<Address> addresses = addressRepository.findByUserId(currentUser.getId());
         return addressMapper.toAddressResponseList(addresses);
+    }
+
+    @Override
+    public AddressDetailResponse getAddressDetail(UUID userId, UUID addressId) {
+        Address address = addressRepository.findByIdAndUserId(addressId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Địa chỉ không tồn tại hoặc không thuộc người dùng này"));
+        return addressMapper.toAddressDetailResponse(address);
     }
 
     private User getCurrentUser() {

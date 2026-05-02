@@ -2,6 +2,7 @@ package com.notfound.userservice.service;
 
 import com.notfound.userservice.model.dto.request.CreateAddressRequest;
 import com.notfound.userservice.model.dto.request.UpdateAddressRequest;
+import com.notfound.userservice.model.dto.response.AddressDetailResponse;
 import com.notfound.userservice.model.dto.response.AddressResponse;
 
 import java.util.List;
@@ -18,4 +19,6 @@ public interface AddressService {
     AddressResponse getAddressById(UUID id);
 
     List<AddressResponse> getUserAddresses();
+
+    AddressDetailResponse getAddressDetail(UUID userId, UUID addressId);
 }
