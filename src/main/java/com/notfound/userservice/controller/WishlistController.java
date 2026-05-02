@@ -7,6 +7,9 @@ import com.notfound.userservice.model.dto.response.WishlistResponse;
 import com.notfound.userservice.model.entity.User;
 import com.notfound.userservice.repository.UserRepository;
 import com.notfound.userservice.service.WishlistService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/users/wishlist")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Tag(name = "User — Wishlist", description = "Wishlist của user đang đăng nhập")
 public class WishlistController {
 
     WishlistService wishlistService;
@@ -36,7 +40,8 @@ public class WishlistController {
     }
 
     @GetMapping
-    public ApiResponse<WishlistResponse> getMyWishlist(Authentication authentication) {
+    @Operation(summary = "Lấy wishlist của tôi")
+    public ApiResponse<WishlistResponse> getMyWishlist(@Parameter(hidden = true) Authentication authentication) {
         UUID userId = resolveUserId(authentication);
         return ApiResponse.<WishlistResponse>builder()
                 .code(1000)
@@ -46,9 +51,10 @@ public class WishlistController {
     }
 
     @PostMapping
+    @Operation(summary = "Thêm sách vào wishlist")
     public ApiResponse<WishlistResponse> addBookToWishlist(
             @Valid @RequestBody AddBookToWishlistRequest request,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         UUID userId = resolveUserId(authentication);
         return ApiResponse.<WishlistResponse>builder()
                 .code(1000)
@@ -58,8 +64,9 @@ public class WishlistController {
     }
 
     @DeleteMapping("/{bookId}")
+    @Operation(summary = "Xóa một sách khỏi wishlist")
     public ApiResponse<Void> removeBookFromWishlist(@PathVariable UUID bookId,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         UUID userId = resolveUserId(authentication);
         wishlistService.removeBookFromWishlist(userId, bookId);
         return ApiResponse.<Void>builder()
@@ -69,7 +76,8 @@ public class WishlistController {
     }
 
     @DeleteMapping
-    public ApiResponse<Void> clearWishlist(Authentication authentication) {
+    @Operation(summary = "Xóa toàn bộ wishlist")
+    public ApiResponse<Void> clearWishlist(@Parameter(hidden = true) Authentication authentication) {
         UUID userId = resolveUserId(authentication);
         wishlistService.clearWishlist(userId);
         return ApiResponse.<Void>builder()
@@ -79,8 +87,9 @@ public class WishlistController {
     }
 
     @GetMapping("/check/{bookId}")
+    @Operation(summary = "Kiểm tra sách có trong wishlist")
     public ApiResponse<BookInWishlistResponse> checkBookInWishlist(@PathVariable UUID bookId,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         UUID userId = resolveUserId(authentication);
         boolean isInWishlist = wishlistService.isBookInWishlist(userId, bookId);
 

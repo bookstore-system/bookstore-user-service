@@ -10,6 +10,8 @@ import com.notfound.userservice.model.dto.response.UserManagementResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.dto.response.UserStatsResponse;
 import com.notfound.userservice.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 @PreAuthorize("hasRole('ADMIN')") // Chỉ ADMIN mới truy cập được
+@Tag(name = "Admin — Users", description = "Quản lý user (chỉ role ADMIN)")
 public class UserController {
 
     UserService userService;
@@ -42,6 +45,7 @@ public class UserController {
      * Lấy danh sách tất cả users với phân trang, tìm kiếm và lọc
      */
     @GetMapping
+    @Operation(summary = "Danh sách user (phân trang, lọc)")
     public ResponseEntity<ApiResponse<Page<UserManagementResponse>>> getAllUsers(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String role,
@@ -76,6 +80,7 @@ public class UserController {
      * Lấy chi tiết một user theo ID
      */
     @GetMapping("/{id}")
+    @Operation(summary = "Chi tiết user theo ID")
     public ResponseEntity<ApiResponse<UserDetailResponse>> getUserById(@PathVariable UUID id) {
         log.info("GET /api/admin/users/{} - Getting user detail", id);
 
@@ -92,6 +97,7 @@ public class UserController {
      * Tạo user mới
      */
     @PostMapping
+    @Operation(summary = "Tạo user mới")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody CreateUserRequest request
     ) {
@@ -111,6 +117,7 @@ public class UserController {
      * Cập nhật thông tin user
      */
     @PutMapping("/{id}")
+    @Operation(summary = "Cập nhật user")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateUserRequest request
@@ -130,6 +137,7 @@ public class UserController {
      * Xóa user
      */
     @DeleteMapping("/{id}")
+    @Operation(summary = "Xóa user")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable UUID id) {
         log.info("DELETE /api/admin/users/{} - Deleting user", id);
 
@@ -145,6 +153,7 @@ public class UserController {
      * Cập nhật trạng thái user (active/inactive/banned)
      */
     @PatchMapping("/{id}/status")
+    @Operation(summary = "Cập nhật trạng thái user")
     public ResponseEntity<ApiResponse<UserResponse>> updateUserStatus(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateUserStatusRequest request
@@ -164,6 +173,7 @@ public class UserController {
      * Cấm user (ban)
      */
     @PatchMapping("/{id}/ban")
+    @Operation(summary = "Cấm user")
     public ResponseEntity<ApiResponse<UserResponse>> banUser(@PathVariable UUID id) {
         log.info("PATCH /api/admin/users/{}/ban - Banning user", id);
 
@@ -180,6 +190,7 @@ public class UserController {
      * Bỏ cấm user (unban)
      */
     @PatchMapping("/{id}/unban")
+    @Operation(summary = "Bỏ cấm user")
     public ResponseEntity<ApiResponse<UserResponse>> unbanUser(@PathVariable UUID id) {
         log.info("PATCH /api/admin/users/{}/unban - Unbanning user", id);
 
@@ -196,6 +207,7 @@ public class UserController {
      * Lấy thống kê tổng quan về users
      */
     @GetMapping("/statistics")
+    @Operation(summary = "Thống kê user")
     public ResponseEntity<ApiResponse<UserStatsResponse>> getStatistics(
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
@@ -221,6 +233,7 @@ public class UserController {
      * Lấy danh sách top spenders
      */
     @GetMapping("/top-spenders")
+    @Operation(summary = "Top chi tiêu")
     public ResponseEntity<ApiResponse<List<UserStatsResponse.TopUserResponse>>> getTopSpenders(
             @RequestParam(defaultValue = "10") int limit
     ) {
@@ -239,6 +252,7 @@ public class UserController {
      * Lấy danh sách top buyers (mua nhiều đơn nhất)
      */
     @GetMapping("/top-buyers")
+    @Operation(summary = "Top số đơn mua")
     public ResponseEntity<ApiResponse<List<UserStatsResponse.TopUserResponse>>> getTopBuyers(
             @RequestParam(defaultValue = "10") int limit
     ) {
@@ -257,6 +271,7 @@ public class UserController {
      * Lấy danh sách users mới
      */
     @GetMapping("/new")
+    @Operation(summary = "User mới trong N ngày")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getNewUsers(
             @RequestParam(defaultValue = "7") int days
     ) {
@@ -275,6 +290,7 @@ public class UserController {
      * Xuất dữ liệu users ra file Excel
      */
     @GetMapping("/export")
+    @Operation(summary = "Xuất Excel danh sách user")
     public ResponseEntity<byte[]> exportUsers() {
         log.info("GET /api/admin/users/export - Exporting users to Excel");
 
