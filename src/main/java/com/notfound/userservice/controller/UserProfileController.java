@@ -1,11 +1,13 @@
 package com.notfound.userservice.controller;
 
 import com.notfound.userservice.model.dto.request.UpdateProfileRequest;
+import com.notfound.userservice.model.dto.response.AddressDetailResponse;
 import com.notfound.userservice.model.dto.response.ApiResponse;
 import com.notfound.userservice.model.dto.response.ContactInfoResponse;
 import com.notfound.userservice.model.dto.response.UserBasicInfoResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.mapper.UserMapper;
+import com.notfound.userservice.service.AddressService;
 import com.notfound.userservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -26,6 +28,7 @@ import java.util.UUID;
 public class UserProfileController {
 
     UserService userService;
+    AddressService addressService;
 
     /**
      * Lấy thông tin user đang đăng nhập
@@ -84,9 +87,26 @@ public class UserProfileController {
     }
 
     /**
-     * Lấy thông tin hiển thị cơ bản của user (dùng cho Review Service)
-     * GET /api/v1/users/{userId}/basic-info
+     * Lấy chi tiết địa chỉ giao hàng của một user (dùng cho Order Service)
+     * GET /api/v1/users/{userId}/addresses/{addressId}
      */
+    @GetMapping("/{userId}/addresses/{addressId}")
+    public ApiResponse<AddressDetailResponse> getAddressDetail(
+            @PathVariable UUID userId,
+            @PathVariable UUID addressId) {
+        log.info("GET /api/v1/users/{}/addresses/{} - Getting address detail", userId, addressId);
+
+        AddressDetailResponse addressDetail = addressService.getAddressDetail(userId, addressId);
+
+        return ApiResponse.<AddressDetailResponse>builder()
+                .code(1000)
+                .message("Lấy chi tiết địa chỉ thành công")
+                .result(addressDetail)
+                .build();
+    }
+    // * Lấy thông tin hiển thị cơ bản của user (dùng cho Review Service)
+    // GET /api/v1/users/{userId}/basic-info
+    //
     @GetMapping("/{userId}/basic-info")
     public ApiResponse<UserBasicInfoResponse> getUserBasicInfo(@PathVariable UUID userId) {
         log.info("GET /api/v1/users/{}/basic-info - Getting basic info", userId);

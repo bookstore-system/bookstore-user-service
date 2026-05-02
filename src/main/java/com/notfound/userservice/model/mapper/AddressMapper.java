@@ -2,6 +2,7 @@ package com.notfound.userservice.model.mapper;
 
 import com.notfound.userservice.model.dto.request.CreateAddressRequest;
 import com.notfound.userservice.model.dto.request.UpdateAddressRequest;
+import com.notfound.userservice.model.dto.response.AddressDetailResponse;
 import com.notfound.userservice.model.dto.response.AddressResponse;
 import com.notfound.userservice.model.entity.Address;
 import org.mapstruct.*;
@@ -17,6 +18,9 @@ public interface AddressMapper {
     AddressResponse toAddressResponse(Address address);
 
     List<AddressResponse> toAddressResponseList(List<Address> addresses);
+
+    @Mapping(source = "street", target = "fullAddress")
+    AddressDetailResponse toAddressDetailResponse(Address address);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
