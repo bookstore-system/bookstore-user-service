@@ -3,6 +3,7 @@ package com.notfound.userservice.controller;
 import com.notfound.userservice.model.dto.request.UpdateProfileRequest;
 import com.notfound.userservice.model.dto.response.ApiResponse;
 import com.notfound.userservice.model.dto.response.ContactInfoResponse;
+import com.notfound.userservice.model.dto.response.UserBasicInfoResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.mapper.UserMapper;
 import com.notfound.userservice.service.UserService;
@@ -79,6 +80,23 @@ public class UserProfileController {
                 .code(200)
                 .message("Lấy thông tin liên lạc thành công")
                 .result(contactInfo)
+                .build();
+    }
+
+    /**
+     * Lấy thông tin hiển thị cơ bản của user (dùng cho Review Service)
+     * GET /api/v1/users/{userId}/basic-info
+     */
+    @GetMapping("/{userId}/basic-info")
+    public ApiResponse<UserBasicInfoResponse> getUserBasicInfo(@PathVariable UUID userId) {
+        log.info("GET /api/v1/users/{}/basic-info - Getting basic info", userId);
+
+        UserBasicInfoResponse basicInfo = userService.getUserBasicInfo(userId);
+
+        return ApiResponse.<UserBasicInfoResponse>builder()
+                .code(200)
+                .message("Lấy thông tin cơ bản của user thành công")
+                .result(basicInfo)
                 .build();
     }
 }
