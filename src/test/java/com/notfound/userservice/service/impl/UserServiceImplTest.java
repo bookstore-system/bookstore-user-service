@@ -3,6 +3,7 @@ package com.notfound.userservice.service.impl;
 import com.notfound.userservice.exception.ResourceNotFoundException;
 import com.notfound.userservice.model.dto.request.CreateUserRequest;
 import com.notfound.userservice.model.dto.response.ContactInfoResponse;
+import com.notfound.userservice.model.dto.response.UserBasicInfoResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.entity.User;
 import com.notfound.userservice.model.enums.Role;
@@ -151,6 +152,44 @@ class UserServiceImplTest {
         // Act & Assert
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             userService.getUserContactInfo(unknownId);
+        });
+
+        assertEquals("Người dùng không tồn tại", exception.getMessage());
+    }
+
+    @Test
+    void getUserBasicInfo_Success() {
+        // Arrange
+        User user = User.builder()
+                .id(userId)
+                .username("testuser")
+                .fullName("Nguyễn Văn A")
+                .avatar_url("https://example.com/avatar/user1.png")
+                .role(Role.CUSTOMER)
+                .status("active")
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // Act
+        UserBasicInfoResponse response = userService.getUserBasicInfo(userId);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(userId, response.getUserId());
+        assertEquals("Nguyễn Văn A", response.getDisplayName());
+        assertEquals("https://example.com/avatar/user1.png", response.getAvatarUrl());
+    }
+
+    @Test
+    void getUserBasicInfo_ThrowsException_WhenUserNotFound() {
+        // Arrange
+        UUID unknownId = UUID.randomUUID();
+        when(userRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+            userService.getUserBasicInfo(unknownId);
         });
 
         assertEquals("Người dùng không tồn tại", exception.getMessage());

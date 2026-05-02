@@ -106,4 +106,9 @@ public interface UserService {
      * Lấy thông tin liên lạc của user (dùng cho Notification Service)
      */
     ContactInfoResponse getUserContactInfo(UUID userId);
+
+    /**
+     * Lấy thông tin hiển thị cơ bản của user (dùng cho Review Service)
+     */
+    UserBasicInfoResponse getUserBasicInfo(UUID userId);
 }

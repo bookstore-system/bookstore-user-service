@@ -6,6 +6,7 @@ import com.notfound.userservice.model.dto.request.UpdateProfileRequest;
 import com.notfound.userservice.model.dto.request.UpdateUserRequest;
 import com.notfound.userservice.model.dto.request.UserFilterRequest;
 import com.notfound.userservice.model.dto.response.ContactInfoResponse;
+import com.notfound.userservice.model.dto.response.UserBasicInfoResponse;
 import com.notfound.userservice.model.dto.response.UserDetailResponse;
 import com.notfound.userservice.model.dto.response.UserManagementResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
@@ -335,6 +336,21 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
                 .deviceToken(null) // Device token not yet supported
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserBasicInfoResponse getUserBasicInfo(UUID userId) {
+        log.info("Getting basic info for userId: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+
+        return UserBasicInfoResponse.builder()
+                .userId(user.getId())
+                .displayName(user.getFullName())
+                .avatarUrl(user.getAvatar_url())
                 .build();
     }
 
