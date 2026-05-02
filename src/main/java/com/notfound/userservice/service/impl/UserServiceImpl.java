@@ -1,5 +1,6 @@
 package com.notfound.userservice.service.impl;
 
+import com.notfound.userservice.exception.ResourceNotFoundException;
 import com.notfound.userservice.model.dto.request.CreateUserRequest;
 import com.notfound.userservice.model.dto.request.UpdateProfileRequest;
 import com.notfound.userservice.model.dto.request.UpdateUserRequest;
@@ -327,7 +328,7 @@ public class UserServiceImpl implements UserService {
         log.info("Getting contact info for userId: {}", userId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
         return ContactInfoResponse.builder()
                 .userId(user.getId())

@@ -1,5 +1,6 @@
 package com.notfound.userservice.service.impl;
 
+import com.notfound.userservice.exception.ResourceNotFoundException;
 import com.notfound.userservice.model.dto.request.CreateUserRequest;
 import com.notfound.userservice.model.dto.response.ContactInfoResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
@@ -148,7 +149,7 @@ class UserServiceImplTest {
         when(userRepository.findById(unknownId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             userService.getUserContactInfo(unknownId);
         });
 
