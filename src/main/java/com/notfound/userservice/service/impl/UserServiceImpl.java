@@ -4,6 +4,7 @@ import com.notfound.userservice.model.dto.request.CreateUserRequest;
 import com.notfound.userservice.model.dto.request.UpdateProfileRequest;
 import com.notfound.userservice.model.dto.request.UpdateUserRequest;
 import com.notfound.userservice.model.dto.request.UserFilterRequest;
+import com.notfound.userservice.model.dto.response.ContactInfoResponse;
 import com.notfound.userservice.model.dto.response.UserDetailResponse;
 import com.notfound.userservice.model.dto.response.UserManagementResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
@@ -318,6 +319,22 @@ public class UserServiceImpl implements UserService {
         // Upload avatar TODO: Implement ImageService / Cloudinary integration
         
         return mapToUserResponse(userRepository.save(user));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ContactInfoResponse getUserContactInfo(UUID userId) {
+        log.info("Getting contact info for userId: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        return ContactInfoResponse.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .deviceToken(null) // Device token not yet supported
+                .build();
     }
 
     @Override

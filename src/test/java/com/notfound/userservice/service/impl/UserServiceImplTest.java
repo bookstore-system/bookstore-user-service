@@ -1,6 +1,7 @@
 package com.notfound.userservice.service.impl;
 
 import com.notfound.userservice.model.dto.request.CreateUserRequest;
+import com.notfound.userservice.model.dto.response.ContactInfoResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.entity.User;
 import com.notfound.userservice.model.enums.Role;
@@ -113,5 +114,44 @@ class UserServiceImplTest {
         
         assertEquals("Không thể ban ADMIN", exception.getMessage());
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void getUserContactInfo_Success() {
+        // Arrange
+        User user = User.builder()
+                .id(userId)
+                .username("testuser")
+                .email("testuser@example.com")
+                .phoneNumber("+84987654321")
+                .role(Role.CUSTOMER)
+                .status("active")
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // Act
+        ContactInfoResponse response = userService.getUserContactInfo(userId);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(userId, response.getUserId());
+        assertEquals("testuser@example.com", response.getEmail());
+        assertEquals("+84987654321", response.getPhoneNumber());
+        assertNull(response.getDeviceToken());
+    }
+
+    @Test
+    void getUserContactInfo_ThrowsException_WhenUserNotFound() {
+        // Arrange
+        UUID unknownId = UUID.randomUUID();
+        when(userRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            userService.getUserContactInfo(unknownId);
+        });
+
+        assertEquals("Người dùng không tồn tại", exception.getMessage());
     }
 }

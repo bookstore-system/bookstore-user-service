@@ -101,4 +101,9 @@ public interface UserService {
      * Cập nhật profile user (cho user tự cập nhật)
      */
     UserResponse updateProfile(String username, UpdateProfileRequest request);
+
+    /**
+     * Lấy thông tin liên lạc của user (dùng cho Notification Service)
+     */
+    ContactInfoResponse getUserContactInfo(UUID userId);
 }
