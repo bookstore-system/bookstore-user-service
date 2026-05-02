@@ -5,6 +5,8 @@ import com.notfound.userservice.model.dto.request.UpdateAddressRequest;
 import com.notfound.userservice.model.dto.response.AddressResponse;
 import com.notfound.userservice.model.dto.response.ApiResponse;
 import com.notfound.userservice.service.AddressService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/users/addresses")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Tag(name = "User — Addresses", description = "Địa chỉ giao hàng (CUSTOMER hoặc ADMIN)")
 public class AddressController {
 
     AddressService addressService;
@@ -32,6 +35,7 @@ public class AddressController {
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(summary = "Thêm địa chỉ")
     public ApiResponse<AddressResponse> createAddress(@Valid @RequestBody CreateAddressRequest request) {
         AddressResponse address = addressService.createAddress(request);
         return ApiResponse.<AddressResponse>builder()
@@ -46,6 +50,7 @@ public class AddressController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(summary = "Cập nhật địa chỉ")
     public ApiResponse<AddressResponse> updateAddress(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateAddressRequest request) {
@@ -62,6 +67,7 @@ public class AddressController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(summary = "Xóa địa chỉ")
     public ApiResponse<Void> deleteAddress(@PathVariable UUID id) {
         addressService.deleteAddress(id);
         return ApiResponse.<Void>builder()
@@ -75,6 +81,7 @@ public class AddressController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(summary = "Chi tiết một địa chỉ của tôi")
     public ApiResponse<AddressResponse> getAddressById(@PathVariable UUID id) {
         AddressResponse address = addressService.getAddressById(id);
         return ApiResponse.<AddressResponse>builder()
@@ -89,6 +96,7 @@ public class AddressController {
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @Operation(summary = "Danh sách địa chỉ của tôi")
     public ApiResponse<List<AddressResponse>> getUserAddresses() {
         List<AddressResponse> addresses = addressService.getUserAddresses();
         return ApiResponse.<List<AddressResponse>>builder()

@@ -6,9 +6,11 @@ import com.notfound.userservice.model.dto.response.ApiResponse;
 import com.notfound.userservice.model.dto.response.ContactInfoResponse;
 import com.notfound.userservice.model.dto.response.UserBasicInfoResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
-import com.notfound.userservice.model.mapper.UserMapper;
 import com.notfound.userservice.service.AddressService;
 import com.notfound.userservice.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
+@Tag(name = "User — Profile & internal", description = "Hồ sơ người dùng; endpoint theo userId phục vụ service nội bộ")
 public class UserProfileController {
 
     UserService userService;
@@ -35,7 +38,8 @@ public class UserProfileController {
      * GET /api/v1/users/profile
      */
     @GetMapping("/profile")
-    public ApiResponse<UserResponse> getCurrentUser(Authentication authentication) {
+    @Operation(summary = "Hồ sơ user đang đăng nhập")
+    public ApiResponse<UserResponse> getCurrentUser(@Parameter(hidden = true) Authentication authentication) {
         String currentUsername = authentication.getName();
         log.info("GET /api/v1/users/profile - Getting profile for user: {}", currentUsername);
         
@@ -54,9 +58,10 @@ public class UserProfileController {
      * Consumes: multipart/form-data
      */
     @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Cập nhật hồ sơ (multipart)")
     public ApiResponse<UserResponse> updateProfile(
             @ModelAttribute @Valid UpdateProfileRequest request,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         String currentUsername = authentication.getName();
         log.info("PUT /api/v1/users/profile - Updating profile for user: {}", currentUsername);
 
@@ -74,6 +79,7 @@ public class UserProfileController {
      * GET /api/v1/users/{userId}/contact-info
      */
     @GetMapping("/{userId}/contact-info")
+    @Operation(summary = "Thông tin liên lạc theo userId (notification)")
     public ApiResponse<ContactInfoResponse> getContactInfo(@PathVariable UUID userId) {
         log.info("GET /api/v1/users/{}/contact-info - Getting contact info", userId);
 
@@ -91,6 +97,7 @@ public class UserProfileController {
      * GET /api/v1/users/{userId}/addresses/{addressId}
      */
     @GetMapping("/{userId}/addresses/{addressId}")
+    @Operation(summary = "Chi tiết địa chỉ theo user + address (order service)")
     public ApiResponse<AddressDetailResponse> getAddressDetail(
             @PathVariable UUID userId,
             @PathVariable UUID addressId) {
@@ -108,6 +115,7 @@ public class UserProfileController {
     // GET /api/v1/users/{userId}/basic-info
     //
     @GetMapping("/{userId}/basic-info")
+    @Operation(summary = "Thông tin hiển thị cơ bản theo userId (review)")
     public ApiResponse<UserBasicInfoResponse> getUserBasicInfo(@PathVariable UUID userId) {
         log.info("GET /api/v1/users/{}/basic-info - Getting basic info", userId);
 
