@@ -2,6 +2,7 @@ package com.notfound.userservice.controller;
 
 import com.notfound.userservice.model.dto.request.UpdateProfileRequest;
 import com.notfound.userservice.model.dto.response.ApiResponse;
+import com.notfound.userservice.model.dto.response.ContactInfoResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.mapper.UserMapper;
 import com.notfound.userservice.service.UserService;
@@ -14,8 +15,10 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
-@RequestMapping("/api/v1/users/profile")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
@@ -25,9 +28,9 @@ public class UserProfileController {
 
     /**
      * Lấy thông tin user đang đăng nhập
-     * GET /api/user/me
+     * GET /api/v1/users/profile
      */
-    @GetMapping
+    @GetMapping("/profile")
     public ApiResponse<UserResponse> getCurrentUser(Authentication authentication) {
         String currentUsername = authentication.getName();
         log.info("GET /api/v1/users/profile - Getting profile for user: {}", currentUsername);
@@ -43,15 +46,15 @@ public class UserProfileController {
 
     /**
      * Cập nhật thông tin cá nhân của user đang đăng nhập
-     * PUT /api/user/profile
+     * PUT /api/v1/users/profile
      * Consumes: multipart/form-data
      */
-    @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<UserResponse> updateProfile(
             @ModelAttribute @Valid UpdateProfileRequest request,
             Authentication authentication) {
         String currentUsername = authentication.getName();
-        log.info("PUT /api/user/profile - Updating profile for user: {}", currentUsername);
+        log.info("PUT /api/v1/users/profile - Updating profile for user: {}", currentUsername);
 
         UserResponse userResponse = userService.updateProfile(currentUsername, request);
 
@@ -59,6 +62,23 @@ public class UserProfileController {
                 .code(200)
                 .message("Cập nhật thông tin thành công")
                 .result(userResponse)
+                .build();
+    }
+
+    /**
+     * Lấy thông tin liên lạc của user (dùng cho Notification Service)
+     * GET /api/v1/users/{userId}/contact-info
+     */
+    @GetMapping("/{userId}/contact-info")
+    public ApiResponse<ContactInfoResponse> getContactInfo(@PathVariable UUID userId) {
+        log.info("GET /api/v1/users/{}/contact-info - Getting contact info", userId);
+
+        ContactInfoResponse contactInfo = userService.getUserContactInfo(userId);
+
+        return ApiResponse.<ContactInfoResponse>builder()
+                .code(200)
+                .message("Lấy thông tin liên lạc thành công")
+                .result(contactInfo)
                 .build();
     }
 }
