@@ -2,6 +2,7 @@ package com.notfound.userservice.service.impl;
 
 
 import com.notfound.userservice.model.dto.request.AddBookToWishlistRequest;
+import com.notfound.userservice.model.dto.response.BookSummaryResponse;
 import com.notfound.userservice.model.dto.response.WishlistResponse;
 import com.notfound.userservice.model.entity.User;
 import com.notfound.userservice.model.entity.Wishlist;
@@ -16,8 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -115,11 +118,17 @@ public class WishlistServiceImpl implements WishlistService {
     }
 
     private WishlistResponse buildWishlistResponse(Wishlist wishlist) {
+        List<BookSummaryResponse> books = wishlist.getBookIds() != null
+                ? wishlist.getBookIds().stream()
+                    .map(bookId -> BookSummaryResponse.builder().id(bookId).build())
+                    .collect(Collectors.toList())
+                : new ArrayList<>();
+
         return WishlistResponse.builder()
                 .wishlistId(wishlist.getWishlistID())
                 .userId(wishlist.getUser().getId())
                 .createdAt(wishlist.getCreatedAt())
-                .bookIds(wishlist.getBookIds() != null ? new ArrayList<>(wishlist.getBookIds()) : new ArrayList<>())
+                .books(books)
                 .build();
     }
 }

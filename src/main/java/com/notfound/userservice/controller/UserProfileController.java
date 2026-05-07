@@ -34,6 +34,25 @@ public class UserProfileController {
     AddressService addressService;
 
     /**
+     * Lấy thông tin user đang đăng nhập (alias).
+     * GET /api/v1/users/me
+     */
+    @GetMapping("/me")
+    @Operation(summary = "Lấy user hiện tại")
+    public ApiResponse<UserResponse> getCurrentUserAlias(@Parameter(hidden = true) Authentication authentication) {
+        String currentUsername = authentication.getName();
+        log.info("GET /api/v1/users/me - Getting current user: {}", currentUsername);
+
+        UserResponse userResponse = userService.getUserByUsername(currentUsername);
+
+        return ApiResponse.<UserResponse>builder()
+                .code(1000)
+                .message("Lấy thông tin user thành công")
+                .result(userResponse)
+                .build();
+    }
+
+    /**
      * Lấy thông tin user đang đăng nhập
      * GET /api/v1/users/profile
      */

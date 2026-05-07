@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/users/wishlist")
+@RequestMapping("/api/v1/wishlist")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Tag(name = "User — Wishlist", description = "Wishlist của user đang đăng nhập")
@@ -50,7 +50,7 @@ public class WishlistController {
                 .build();
     }
 
-    @PostMapping
+    @PostMapping("/add")
     @Operation(summary = "Thêm sách vào wishlist")
     public ApiResponse<WishlistResponse> addBookToWishlist(
             @Valid @RequestBody AddBookToWishlistRequest request,
@@ -63,7 +63,7 @@ public class WishlistController {
                 .build();
     }
 
-    @DeleteMapping("/{bookId}")
+    @DeleteMapping("/remove/{bookId}")
     @Operation(summary = "Xóa một sách khỏi wishlist")
     public ApiResponse<Void> removeBookFromWishlist(@PathVariable UUID bookId,
             @Parameter(hidden = true) Authentication authentication) {
@@ -75,7 +75,7 @@ public class WishlistController {
                 .build();
     }
 
-    @DeleteMapping
+    @DeleteMapping("/clear")
     @Operation(summary = "Xóa toàn bộ wishlist")
     public ApiResponse<Void> clearWishlist(@Parameter(hidden = true) Authentication authentication) {
         UUID userId = resolveUserId(authentication);
