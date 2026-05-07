@@ -17,6 +17,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -162,6 +164,37 @@ public class AuthController {
                 .code(1000)
                 .message("Làm mới token thành công")
                 .result(authResponse)
+                .build();
+    }
+
+    /**
+     * Alias endpoint để tương thích với hệ thống monolith cũ: /api/auth/google/callback
+     * User-service hiện chưa hỗ trợ Google OAuth flow.
+     */
+    @GetMapping("/google/callback")
+    @Operation(summary = "Google OAuth callback (chưa hỗ trợ trong user-service)")
+    public ResponseEntity<ApiResponse<Void>> googleCallback(@RequestParam("code") String code) {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                .body(ApiResponse.<Void>builder()
+                        .code(HttpStatus.NOT_IMPLEMENTED.value())
+                        .message("User-service chưa hỗ trợ Google OAuth. Hãy dùng endpoint monolith hoặc implement OAuth flow trong user-service.")
+                        .build());
+    }
+
+    /**
+     * Alias endpoint để lấy thông tin user đang đăng nhập (tương thích FE).
+     * Endpoint chuẩn bên user-service là GET /api/v1/users/profile
+     */
+    @GetMapping("/me")
+    @Operation(summary = "Lấy user hiện tại (alias)")
+    public ApiResponse<UserResponse> me(@Parameter(hidden = true) Authentication authentication) {
+        String currentUsername = authentication.getName();
+        UserResponse userResponse = userService.getUserByUsername(currentUsername);
+
+        return ApiResponse.<UserResponse>builder()
+                .code(1000)
+                .message("Lấy thông tin user thành công")
+                .result(userResponse)
                 .build();
     }
 

@@ -17,5 +17,5 @@ public class WishlistResponse {
     UUID wishlistId;
     UUID userId;
     LocalDateTime createdAt;
-    List<UUID> bookIds;
+    List<BookSummaryResponse> books;
 }
