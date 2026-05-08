@@ -59,6 +59,9 @@ public class AuthController {
     @Operation(summary = "Đăng nhập")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse authResponse = authService.login(request);
+
+        log.info("Đăng nhập thành công cho user: {}");
+
         return ApiResponse.<AuthResponse>builder()
                 .code(1000)
                 .message("Đăng nhập thành công!")

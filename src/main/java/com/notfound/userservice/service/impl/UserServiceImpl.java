@@ -1,5 +1,6 @@
 package com.notfound.userservice.service.impl;
 
+import com.notfound.userservice.client.OrderClient;
 import com.notfound.userservice.exception.ResourceNotFoundException;
 import com.notfound.userservice.model.dto.request.CreateUserRequest;
 import com.notfound.userservice.model.dto.request.UpdateProfileRequest;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -41,6 +43,7 @@ public class UserServiceImpl implements UserService {
 
     PasswordEncoder passwordEncoder;
     UserRepository userRepository;
+    OrderClient orderClient;
 
     @Override
     public boolean existsByEmail(String email) {
@@ -252,12 +255,21 @@ public class UserServiceImpl implements UserService {
         long totalCustomers = userRepository.countByRole(Role.CUSTOMER);
         long totalGuests = userRepository.countByRole(Role.GUEST);
 
-        // Trong microservice, Order và Revenue sẽ lấy từ OrderService thông qua FeignClient.
-        // Hiện tại trả về 0, sẽ tích hợp sau.
-        BigDecimal totalRevenue = BigDecimal.ZERO;
-        long totalOrders = 0L;
-        BigDecimal avgRevenuePerUser = BigDecimal.ZERO;
-        BigDecimal avgOrderValue = BigDecimal.ZERO;
+        String startStr = startDate != null ? startDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null;
+        String endStr = endDate != null ? endDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null;
+        
+        UserStatsResponse orderStats = null;
+        try {
+            orderStats = orderClient.getOrderStats(startStr, endStr);
+        } catch (Exception e) {
+            log.warn("Failed to fetch order stats from order-service", e);
+        }
+
+        BigDecimal totalRevenue = orderStats != null && orderStats.getTotalRevenue() != null ? orderStats.getTotalRevenue() : BigDecimal.ZERO;
+        long totalOrders = orderStats != null && orderStats.getTotalOrders() != null ? orderStats.getTotalOrders() : 0L;
+        BigDecimal avgRevenuePerUser = orderStats != null && orderStats.getAvgRevenuePerUser() != null ? orderStats.getAvgRevenuePerUser() : BigDecimal.ZERO;
+        BigDecimal avgOrderValue = orderStats != null && orderStats.getAvgOrderValue() != null ? orderStats.getAvgOrderValue() : BigDecimal.ZERO;
+        String currency = orderStats != null && orderStats.getCurrency() != null ? orderStats.getCurrency() : "VND";
 
         return UserStatsResponse.builder()
                 .totalUsers(totalUsers)
@@ -274,8 +286,9 @@ public class UserServiceImpl implements UserService {
                 .avgRevenuePerUser(avgRevenuePerUser)
                 .avgOrderValue(avgOrderValue)
                 .totalOrders(totalOrders)
-                .topSpenders(List.of()) // Cần call OrderService
-                .topBuyers(List.of())   // Cần call OrderService
+                .currency(currency)
+                .topSpenders(List.of())
+                .topBuyers(List.of())   
                 .build();
     }
 

@@ -34,6 +34,7 @@ public class UserStatsResponse {
     BigDecimal avgRevenuePerUser;
     BigDecimal avgOrderValue;
     Long totalOrders;
+    String currency;
 
     // Top users
     List<TopUserResponse> topSpenders;
