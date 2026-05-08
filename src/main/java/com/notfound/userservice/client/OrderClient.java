@@ -13,4 +13,19 @@ public interface OrderClient {
             @RequestParam(value = "startDate", required = false) String startDate,
             @RequestParam(value = "endDate", required = false) String endDate
     );
+
+    @GetMapping("/api/v1/orders/top-spenders")
+    java.util.List<UserStatsResponse.TopUserResponse> getTopSpenders(
+            @RequestParam(value = "limit", defaultValue = "5", required = false) Integer limit
+    );
+
+    @GetMapping("/api/v1/orders/top-buyers")
+    java.util.List<UserStatsResponse.TopUserResponse> getTopBuyers(
+            @RequestParam(value = "limit", defaultValue = "5", required = false) Integer limit
+    );
+
+    @GetMapping("/api/v1/orders/users/{userId}/summary")
+    com.notfound.userservice.model.dto.response.UserOrderSummaryResponse getUserOrderSummary(
+            @org.springframework.web.bind.annotation.PathVariable("userId") java.util.UUID userId
+    );
 }
