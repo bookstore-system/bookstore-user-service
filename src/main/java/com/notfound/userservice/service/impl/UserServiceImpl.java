@@ -1,5 +1,7 @@
 package com.notfound.userservice.service.impl;
 
+import com.notfound.userservice.client.OrderClient;
+import com.notfound.userservice.client.ReviewClient;
 import com.notfound.userservice.exception.ResourceNotFoundException;
 import com.notfound.userservice.model.dto.request.CreateUserRequest;
 import com.notfound.userservice.model.dto.request.UpdateProfileRequest;
@@ -9,7 +11,9 @@ import com.notfound.userservice.model.dto.response.ContactInfoResponse;
 import com.notfound.userservice.model.dto.response.UserBasicInfoResponse;
 import com.notfound.userservice.model.dto.response.UserDetailResponse;
 import com.notfound.userservice.model.dto.response.UserManagementResponse;
+import com.notfound.userservice.model.dto.response.UserOrderSummaryResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
+import com.notfound.userservice.model.dto.response.UserReviewCountResponse;
 import com.notfound.userservice.model.dto.response.UserStatsResponse;
 import com.notfound.userservice.model.entity.User;
 import com.notfound.userservice.model.enums.Role;
@@ -29,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -41,6 +46,8 @@ public class UserServiceImpl implements UserService {
 
     PasswordEncoder passwordEncoder;
     UserRepository userRepository;
+    OrderClient orderClient;
+    ReviewClient reviewClient;
 
     @Override
     public boolean existsByEmail(String email) {
@@ -252,12 +259,22 @@ public class UserServiceImpl implements UserService {
         long totalCustomers = userRepository.countByRole(Role.CUSTOMER);
         long totalGuests = userRepository.countByRole(Role.GUEST);
 
-        // Trong microservice, Order và Revenue sẽ lấy từ OrderService thông qua FeignClient.
-        // Hiện tại trả về 0, sẽ tích hợp sau.
-        BigDecimal totalRevenue = BigDecimal.ZERO;
-        long totalOrders = 0L;
-        BigDecimal avgRevenuePerUser = BigDecimal.ZERO;
-        BigDecimal avgOrderValue = BigDecimal.ZERO;
+        String startStr = startDate != null ? startDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null;
+        String endStr = endDate != null ? endDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null;
+        
+        UserStatsResponse orderStats = null;
+        try {
+            orderStats = orderClient.getOrderStats(startStr, endStr);
+            log.info("Fetched order stats successfully: {}", orderStats);
+        } catch (Exception e) {
+            log.warn("Failed to fetch order stats from order-service", e);
+        }
+
+        BigDecimal totalRevenue = orderStats != null && orderStats.getTotalRevenue() != null ? orderStats.getTotalRevenue() : BigDecimal.ZERO;
+        long totalOrders = orderStats != null && orderStats.getTotalOrders() != null ? orderStats.getTotalOrders() : 0L;
+        BigDecimal avgRevenuePerUser = orderStats != null && orderStats.getAvgRevenuePerUser() != null ? orderStats.getAvgRevenuePerUser() : BigDecimal.ZERO;
+        BigDecimal avgOrderValue = orderStats != null && orderStats.getAvgOrderValue() != null ? orderStats.getAvgOrderValue() : BigDecimal.ZERO;
+        String currency = orderStats != null && orderStats.getCurrency() != null ? orderStats.getCurrency() : "VND";
 
         return UserStatsResponse.builder()
                 .totalUsers(totalUsers)
@@ -274,23 +291,70 @@ public class UserServiceImpl implements UserService {
                 .avgRevenuePerUser(avgRevenuePerUser)
                 .avgOrderValue(avgOrderValue)
                 .totalOrders(totalOrders)
-                .topSpenders(List.of()) // Cần call OrderService
-                .topBuyers(List.of())   // Cần call OrderService
+                .currency(currency)
+                .topSpenders(getTopSpenders(5))
+                .topBuyers(getTopBuyers(5))   
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserStatsResponse.TopUserResponse> getTopSpenders(int limit) {
-        // TODO: Lấy từ OrderService
-        return List.of();
+        try {
+            List<UserStatsResponse.TopUserResponse> spenders = orderClient.getTopSpenders(limit);
+            return fetchAndHydrateTopUsers(spenders);
+        } catch (Exception e) {
+            log.warn("Failed to fetch top spenders from order-service", e);
+            return List.of();
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserStatsResponse.TopUserResponse> getTopBuyers(int limit) {
-        // TODO: Lấy từ OrderService
-        return List.of();
+        try {
+            List<UserStatsResponse.TopUserResponse> buyers = orderClient.getTopBuyers(limit);
+            return fetchAndHydrateTopUsers(buyers);
+        } catch (Exception e) {
+            log.warn("Failed to fetch top buyers from order-service", e);
+            return List.of();
+        }
+    }
+
+    private List<UserStatsResponse.TopUserResponse> fetchAndHydrateTopUsers(List<UserStatsResponse.TopUserResponse> topUsers) {
+        if (topUsers == null || topUsers.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> userIds = topUsers.stream()
+                .filter(u -> u.getUserId() != null)
+                .map(u -> {
+                    try {
+                        return UUID.fromString(u.getUserId());
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(id -> id != null)
+                .collect(Collectors.toList());
+
+        List<User> users = userRepository.findAllById(userIds);
+        var userMap = users.stream().collect(Collectors.toMap(User::getId, u -> u));
+
+        for (var topUser : topUsers) {
+            try {
+                UUID id = UUID.fromString(topUser.getUserId());
+                User user = userMap.get(id);
+                if (user != null) {
+                    topUser.setUsername(user.getUsername());
+                    topUser.setEmail(user.getEmail());
+                    topUser.setFullName(user.getFullName());
+                    topUser.setAvatarUrl(user.getAvatar_url());
+                }
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        return topUsers;
     }
 
     @Override
@@ -363,6 +427,8 @@ public class UserServiceImpl implements UserService {
     // ===== MAPPING METHODS =====
 
     private UserManagementResponse mapToUserManagementResponse(User user) {
+        UserOrderSummaryResponse summary = getUserOrderSummarySafely(user.getId());
+        
         return UserManagementResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -379,12 +445,15 @@ public class UserServiceImpl implements UserService {
                 .isEmailVerified(user.getIsEmailVerified())
                 .createdAt(user.getCreatedAt())
                 .lastLogin(user.getLastLogin())
-                .totalOrders(0) // TODO: Call OrderService
-                .totalSpent(BigDecimal.ZERO) // TODO: Call OrderService
+                .totalOrders(summary.getTotalOrders())
+                .totalSpent(summary.getTotalSpent())
                 .build();
     }
 
     private UserDetailResponse mapToUserDetailResponse(User user) {
+        UserOrderSummaryResponse summary = getUserOrderSummarySafely(user.getId());
+        UserReviewCountResponse reviewCount = getUserReviewCountSafely(user.getId());
+
         return UserDetailResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -401,10 +470,10 @@ public class UserServiceImpl implements UserService {
                 .isEmailVerified(user.getIsEmailVerified())
                 .authProvider(user.getAuthProvider() != null ? user.getAuthProvider().name() : null)
                 .providerId(user.getProviderId())
-                .totalOrders(0) // TODO: Call OrderService
-                .totalSpent(BigDecimal.ZERO) // TODO: Call OrderService
-                .totalReviews(0) // TODO: Call ReviewService
-                .lastOrderDate(null) // TODO: Call OrderService
+                .totalOrders(summary.getTotalOrders())
+                .totalSpent(summary.getTotalSpent())
+                .totalReviews(reviewCount.getTotalReviews())
+                .lastOrderDate(summary.getLastOrderDate())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .lastLoginAt(user.getLastLogin())
@@ -428,6 +497,38 @@ public class UserServiceImpl implements UserService {
                 .authProvider(user.getAuthProvider() != null ? user.getAuthProvider().name() : null)
                 .lastLogin(user.getLastLogin())
                 .avatar(user.getAvatar_url())
+                .build();
+    }
+
+    private UserOrderSummaryResponse getUserOrderSummarySafely(UUID userId) {
+        try {
+            UserOrderSummaryResponse summary = orderClient.getUserOrderSummary(userId);
+            if (summary != null) {
+                return summary;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch order summary for user {}: {}", userId, e.getMessage());
+        }
+        return UserOrderSummaryResponse.builder()
+                .userId(userId)
+                .totalOrders(0)
+                .totalSpent(BigDecimal.ZERO)
+                .lastOrderDate(null)
+                .build();
+    }
+
+    private UserReviewCountResponse getUserReviewCountSafely(UUID userId) {
+        try {
+            UserReviewCountResponse reviewCount = reviewClient.getUserReviewCount(userId);
+            if (reviewCount != null) {
+                return reviewCount;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch review count for user {}: {}", userId, e.getMessage());
+        }
+        return UserReviewCountResponse.builder()
+                .userId(userId)
+                .totalReviews(0)
                 .build();
     }
 }

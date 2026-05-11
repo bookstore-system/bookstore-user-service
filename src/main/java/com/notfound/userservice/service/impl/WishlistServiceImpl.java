@@ -1,9 +1,13 @@
 package com.notfound.userservice.service.impl;
 
 
+import com.notfound.userservice.client.BookClient;
 import com.notfound.userservice.model.dto.request.AddBookToWishlistRequest;
+import com.notfound.userservice.model.dto.request.BatchBookRequest;
+import com.notfound.userservice.model.dto.response.BatchBookResponse;
 import com.notfound.userservice.model.dto.response.BookSummaryResponse;
 import com.notfound.userservice.model.dto.response.WishlistResponse;
+import feign.FeignException;
 import com.notfound.userservice.model.entity.User;
 import com.notfound.userservice.model.entity.Wishlist;
 import com.notfound.userservice.repository.UserRepository;
@@ -30,6 +34,7 @@ public class WishlistServiceImpl implements WishlistService {
 
     WishlistRepository wishlistRepository;
     UserRepository userRepository;
+    BookClient bookClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -48,6 +53,15 @@ public class WishlistServiceImpl implements WishlistService {
         }
 
         UUID bookId = request.getBookId();
+        
+        try {
+            bookClient.getBookById(bookId);
+        } catch (FeignException.NotFound e) {
+            throw new IllegalArgumentException("Sách không tồn tại");
+        } catch (Exception e) {
+            log.warn("Lỗi khi validate sách với book-service: {}", e.getMessage());
+        }
+
         if (wishlist.getBookIds().contains(bookId)) {
             // throw new AppException(ErrorCode.BOOK_ALREADY_IN_WISHLIST);
             throw new IllegalArgumentException("Sách đã có trong wishlist");
@@ -118,11 +132,38 @@ public class WishlistServiceImpl implements WishlistService {
     }
 
     private WishlistResponse buildWishlistResponse(Wishlist wishlist) {
-        List<BookSummaryResponse> books = wishlist.getBookIds() != null
-                ? wishlist.getBookIds().stream()
-                    .map(bookId -> BookSummaryResponse.builder().id(bookId).build())
-                    .collect(Collectors.toList())
-                : new ArrayList<>();
+        List<BookSummaryResponse> books = new ArrayList<>();
+        
+        if (wishlist.getBookIds() != null && !wishlist.getBookIds().isEmpty()) {
+            List<String> idsStr = wishlist.getBookIds().stream()
+                    .map(UUID::toString)
+                    .collect(Collectors.toList());
+                    
+            try {
+                BatchBookRequest req = BatchBookRequest.builder().ids(idsStr).build();
+                BatchBookResponse batchResp = bookClient.getBooksBatch(req);
+                
+                if (batchResp != null && batchResp.getItems() != null) {
+                    for (BatchBookResponse.BookItem item : batchResp.getItems()) {
+                        BookSummaryResponse summary = BookSummaryResponse.builder()
+                                .id(item.getId())
+                                .title(item.getTitle())
+                                .price(item.getPrice() != null ? item.getPrice().doubleValue() : null)
+                                .discountPrice(item.getDiscountPrice() != null ? item.getDiscountPrice().doubleValue() : null)
+                                .mainImageUrl(item.getThumbnailUrl())
+                                .stockQuantity(item.getInStock() != null && item.getInStock() ? 1 : 0)
+                                .build();
+                        books.add(summary);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Lỗi khi fetch chi tiết sách từ book-service: {}", e.getMessage());
+                // Fallback: chỉ trả về IDs
+                books = wishlist.getBookIds().stream()
+                        .map(bookId -> BookSummaryResponse.builder().id(bookId).build())
+                        .collect(Collectors.toList());
+            }
+        }
 
         return WishlistResponse.builder()
                 .wishlistId(wishlist.getWishlistID())
