@@ -5,7 +5,6 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
-import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @Builder
@@ -22,6 +21,4 @@ public class UpdateProfileRequest {
     String gender;
 
     LocalDate dateOfBirth;
-
-    MultipartFile avatar;
 }

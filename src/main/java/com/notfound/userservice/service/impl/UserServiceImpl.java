@@ -18,6 +18,7 @@ import com.notfound.userservice.model.dto.response.UserStatsResponse;
 import com.notfound.userservice.model.entity.User;
 import com.notfound.userservice.model.enums.Role;
 import com.notfound.userservice.repository.UserRepository;
+import com.notfound.userservice.service.ImageService;
 import com.notfound.userservice.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -30,11 +31,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -48,6 +51,7 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     OrderClient orderClient;
     ReviewClient reviewClient;
+    ImageService imageService;
 
     @Override
     public boolean existsByEmail(String email) {
@@ -365,7 +369,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateProfile(String username, UpdateProfileRequest request) {
+    public UserResponse updateProfile(String username, UpdateProfileRequest request, MultipartFile avatar) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
 
@@ -382,8 +386,12 @@ public class UserServiceImpl implements UserService {
             user.setDateOfBirth(request.getDateOfBirth());
         }
 
-        // Upload avatar TODO: Implement ImageService / Cloudinary integration
-        
+        if (avatar != null && !avatar.isEmpty()) {
+            Map<String, Object> uploadResult = imageService.uploadImage(avatar, "bookstore/avatars");
+            String uploadedUrl = (String) uploadResult.get("url");
+            user.setAvatar_url(uploadedUrl);
+        }
+
         return mapToUserResponse(userRepository.save(user));
     }
 

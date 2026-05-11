@@ -7,7 +7,10 @@ import com.notfound.userservice.model.dto.response.UserBasicInfoResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.entity.User;
 import com.notfound.userservice.model.enums.Role;
+import com.notfound.userservice.client.OrderClient;
+import com.notfound.userservice.client.ReviewClient;
 import com.notfound.userservice.repository.UserRepository;
+import com.notfound.userservice.service.ImageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +34,15 @@ class UserServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private OrderClient orderClient;
+
+    @Mock
+    private ReviewClient reviewClient;
+
+    @Mock
+    private ImageService imageService;
 
     @InjectMocks
     private UserServiceImpl userService;

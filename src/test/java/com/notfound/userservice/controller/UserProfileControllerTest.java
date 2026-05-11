@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -72,7 +73,7 @@ class UserProfileControllerTest {
 
     @Test
     void updateProfile_putMultipart_callsService() throws Exception {
-        when(userService.updateProfile(eq("u"), any(UpdateProfileRequest.class)))
+        when(userService.updateProfile(eq("u"), any(UpdateProfileRequest.class), isNull()))
                 .thenReturn(UserResponse.builder().username("u").fullName("New Name").build());
 
         MockMultipartHttpServletRequestBuilder req =

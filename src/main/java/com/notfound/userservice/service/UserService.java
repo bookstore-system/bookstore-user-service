@@ -3,6 +3,7 @@ package com.notfound.userservice.service;
 import com.notfound.userservice.model.dto.request.*;
 import com.notfound.userservice.model.dto.response.*;
 import org.springframework.data.domain.Page;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -100,7 +101,7 @@ public interface UserService {
     /**
      * Cập nhật profile user (cho user tự cập nhật)
      */
-    UserResponse updateProfile(String username, UpdateProfileRequest request);
+    UserResponse updateProfile(String username, UpdateProfileRequest request, MultipartFile avatar);
 
     /**
      * Lấy thông tin liên lạc của user (dùng cho Notification Service)
