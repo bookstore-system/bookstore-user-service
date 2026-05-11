@@ -5,6 +5,7 @@ import com.notfound.userservice.client.BookClient;
 import com.notfound.userservice.model.dto.request.AddBookToWishlistRequest;
 import com.notfound.userservice.model.dto.request.BatchBookRequest;
 import com.notfound.userservice.model.dto.response.BatchBookResponse;
+import com.notfound.userservice.model.dto.response.BookServiceApiResponse;
 import com.notfound.userservice.model.dto.response.BookSummaryResponse;
 import com.notfound.userservice.model.dto.response.WishlistResponse;
 import feign.FeignException;
@@ -37,7 +38,7 @@ public class WishlistServiceImpl implements WishlistService {
     BookClient bookClient;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public WishlistResponse getMyWishlist(UUID userId) {
         Wishlist wishlist = getOrCreateWishlist(userId);
         return buildWishlistResponse(wishlist);
@@ -141,8 +142,9 @@ public class WishlistServiceImpl implements WishlistService {
                     
             try {
                 BatchBookRequest req = BatchBookRequest.builder().ids(idsStr).build();
-                BatchBookResponse batchResp = bookClient.getBooksBatch(req);
-                
+                BookServiceApiResponse<BatchBookResponse> wrapped = bookClient.getBooksBatch(req);
+                BatchBookResponse batchResp = wrapped != null ? wrapped.getData() : null;
+
                 if (batchResp != null && batchResp.getItems() != null) {
                     for (BatchBookResponse.BookItem item : batchResp.getItems()) {
                         BookSummaryResponse summary = BookSummaryResponse.builder()

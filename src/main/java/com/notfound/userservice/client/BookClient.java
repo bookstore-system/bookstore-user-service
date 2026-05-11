@@ -2,6 +2,7 @@ package com.notfound.userservice.client;
 
 import com.notfound.userservice.model.dto.request.BatchBookRequest;
 import com.notfound.userservice.model.dto.response.BatchBookResponse;
+import com.notfound.userservice.model.dto.response.BookServiceApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +16,7 @@ import java.util.UUID;
 public interface BookClient {
 
     @PostMapping("/api/v1/books/batch")
-    BatchBookResponse getBooksBatch(@RequestBody BatchBookRequest request);
+    BookServiceApiResponse<BatchBookResponse> getBooksBatch(@RequestBody BatchBookRequest request);
 
     @GetMapping("/api/v1/books/{bookId}")
     ResponseEntity<Object> getBookById(@PathVariable("bookId") UUID bookId);
