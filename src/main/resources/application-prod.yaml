@@ -15,3 +15,9 @@ app:
   jwt:
     expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
     refresh-expiration-ms: ${APP_JWT_REFRESH_EXPIRATION_MS:604800000}
+
+cloudinary:
+  enabled: ${CLOUDINARY_ENABLED:true}
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY:CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET:CLOUDINARY_API_SECRET}

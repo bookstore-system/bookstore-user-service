@@ -14,6 +14,8 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BatchBookResponse {
     List<BookItem> items;
+    /** Khớp field {@code missingIds} từ book-service (có thể bỏ qua khi build wishlist). */
+    List<UUID> missingIds;
 
     @Data
     @Builder

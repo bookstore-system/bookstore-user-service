@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -80,11 +81,12 @@ public class UserProfileController {
     @Operation(summary = "Cập nhật hồ sơ (multipart)")
     public ApiResponse<UserResponse> updateProfile(
             @ModelAttribute @Valid UpdateProfileRequest request,
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar,
             @Parameter(hidden = true) Authentication authentication) {
         String currentUsername = authentication.getName();
         log.info("PUT /api/v1/users/profile - Updating profile for user: {}", currentUsername);
 
-        UserResponse userResponse = userService.updateProfile(currentUsername, request);
+        UserResponse userResponse = userService.updateProfile(currentUsername, request, avatar);
 
         return ApiResponse.<UserResponse>builder()
                 .code(200)
