@@ -22,7 +22,7 @@ import java.util.UUID;
  * Cho phép người dùng quản lý danh sách địa chỉ giao hàng
  */
 @RestController
-@RequestMapping("/api/v1/users/addresses")
+@RequestMapping("/api/v1/addresses")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Tag(name = "User — Addresses", description = "Địa chỉ giao hàng (CUSTOMER hoặc ADMIN)")
@@ -94,7 +94,7 @@ public class AddressController {
     /**
      * Lấy danh sách tất cả địa chỉ của người dùng hiện tại
      */
-    @GetMapping
+    @GetMapping("/user")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @Operation(summary = "Danh sách địa chỉ của tôi")
     public ApiResponse<List<AddressResponse>> getUserAddresses() {
