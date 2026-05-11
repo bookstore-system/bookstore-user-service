@@ -91,5 +91,16 @@ public class GlobalExceptionHandler {
                         List.of());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
+
+    @ExceptionHandler(ImageStorageUnavailableException.class)
+    public ResponseEntity<ApiError> handleImageStorageUnavailable(ImageStorageUnavailableException ex) {
+        ApiError body =
+                ApiError.of(
+                        HttpStatus.SERVICE_UNAVAILABLE.value(),
+                        HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                        ex.getMessage(),
+                        List.of());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+    }
 }
 
