@@ -9,21 +9,27 @@ import com.notfound.userservice.model.dto.response.UserBasicInfoResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.service.AddressService;
 import com.notfound.userservice.service.UserService;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.UUID;
 
+import org.mockito.ArgumentCaptor;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -90,6 +96,30 @@ class UserProfileControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.result.fullName").value("New Name"));
+    }
+
+    @Test
+    void updateProfile_putMultipart_withAvatarFile_passesNonEmptyFileToService() throws Exception {
+        MockMultipartFile avatar =
+                new MockMultipartFile("avatar", "a.png", "image/png", new byte[] {1, 2, 3});
+        when(userService.updateProfile(eq("u"), any(UpdateProfileRequest.class), any(MultipartFile.class)))
+                .thenReturn(UserResponse.builder().username("u").build());
+
+        MockMultipartHttpServletRequestBuilder req =
+                multipart("/api/v1/users/profile")
+                        .file(avatar)
+                        .with(r -> {
+                            r.setMethod("PUT");
+                            return r;
+                        })
+                        .principal(new UsernamePasswordAuthenticationToken("u", "N/A"))
+                        .param("fullName", "With Avatar");
+
+        mockMvc.perform(req).andExpect(status().isOk());
+
+        ArgumentCaptor<MultipartFile> fileCaptor = ArgumentCaptor.forClass(MultipartFile.class);
+        verify(userService).updateProfile(eq("u"), any(UpdateProfileRequest.class), fileCaptor.capture());
+        Assertions.assertFalse(fileCaptor.getValue().isEmpty());
     }
 
     @Test
