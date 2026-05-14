@@ -74,17 +74,21 @@ public class UserProfileController {
 
     /**
      * Cập nhật thông tin cá nhân của user đang đăng nhập
-     * PUT /api/v1/users/profile
-     * Consumes: multipart/form-data
+     * PUT / POST / PATCH /api/v1/users/profile — multipart/form-data
+     * (Dùng thêm POST/PATCH vì một số client/proxy không gửi file đúng với PUT;
+     * phần file nên bind bằng {@code @RequestParam} giống form upload HTML/Postman.)
      */
-    @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequestMapping(
+            value = "/profile",
+            method = {RequestMethod.PUT, RequestMethod.POST, RequestMethod.PATCH},
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Cập nhật hồ sơ (multipart)")
     public ApiResponse<UserResponse> updateProfile(
             @ModelAttribute @Valid UpdateProfileRequest request,
-            @RequestPart(value = "avatar", required = false) MultipartFile avatar,
+            @RequestParam(value = "avatar", required = false) MultipartFile avatar,
             @Parameter(hidden = true) Authentication authentication) {
         String currentUsername = authentication.getName();
-        log.info("PUT /api/v1/users/profile - Updating profile for user: {}", currentUsername);
+        log.info("Updating profile (multipart) for user: {}", currentUsername);
 
         UserResponse userResponse = userService.updateProfile(currentUsername, request, avatar);
 
