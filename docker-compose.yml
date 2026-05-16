@@ -48,9 +48,11 @@ services:
     volumes:
       - .:/build
       - ~/.m2:/root/.m2
+      - ./key:/key:ro
     command: mvn spring-boot:run -Dspring-boot.run.profiles=docker
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      APP_JWT_KEYS_DIR: /key
       SPRING_DATASOURCE_URL: jdbc:mysql://user-db:3306/bookstore_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: bookstore
       SPRING_DATASOURCE_PASSWORD: bookstore
@@ -58,8 +60,6 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
-      APP_JWT_PRIVATE_KEY: "${APP_JWT_PRIVATE_KEY}"
-      APP_JWT_PUBLIC_KEY: "${APP_JWT_PUBLIC_KEY}"
       APP_JWT_EXPIRATION_MS: "${APP_JWT_EXPIRATION_MS}"
       APP_JWT_REFRESH_EXPIRATION_MS: "${APP_JWT_REFRESH_EXPIRATION_MS}"
       CLOUDINARY_ENABLED: true
@@ -74,4 +74,4 @@ volumes:
 
 networks:
   bookstore-network:
-    # external: true
+    external: true

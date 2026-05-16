@@ -41,8 +41,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 Khi chạy bằng `docker compose`, các biến chính được set trong `docker-compose.yml` và đọc thêm từ `.env`.
 
 - **JWT**
-  - `APP_JWT_PRIVATE_KEY`
-  - `APP_JWT_PUBLIC_KEY`
+  - `APP_JWT_KEYS_DIR` (mặc định `./key`, chứa `private.pem` + `public.pem`)
   - `APP_JWT_EXPIRATION_MS`
   - `APP_JWT_REFRESH_EXPIRATION_MS`
 - **DB / Redis**

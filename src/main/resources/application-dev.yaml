@@ -16,9 +16,12 @@ spring:
       ddl-auto: update
     show-sql: false
 
-# RS256 JWT Configuration
+# RS256 JWT — key PEM trong thư mục key/ (local: ./key, Docker/K8s: /key)
 app:
   jwt:
+    keys-dir: ${APP_JWT_KEYS_DIR:./key}
+    private-key-file: private.pem
+    public-key-file: public.pem
     expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
     refresh-expiration-ms: ${APP_JWT_REFRESH_EXPIRATION_MS:604800000}
 
