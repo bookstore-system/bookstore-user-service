@@ -23,38 +23,38 @@ spec:
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "prod"
+        - name: APP_JWT_KEYS_DIR
+          value: "/key"
         - name: DB_HOST
           valueFrom:
             configMapKeyRef:
               name: user-service-config
               key: DB_HOST
-
         - name: DB_PORT
           valueFrom:
             configMapKeyRef:
               name: user-service-config
               key: DB_PORT
-
         - name: DB_NAME
           valueFrom:
             configMapKeyRef:
               name: user-service-config
               key: DB_NAME
-
         - name: DB_USERNAME
           valueFrom:
             secretKeyRef:
               name: user-service-secret
               key: DB_USERNAME
-
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: user-service-secret
               key: DB_PASSWORD
-
-        - name: APP_JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: user-service-secret
-              key: APP_JWT_SECRET
+        volumeMounts:
+        - name: jwt-keys
+          mountPath: /key
+          readOnly: true
+      volumes:
+      - name: jwt-keys
+        secret:
+          secretName: jwt-keys
