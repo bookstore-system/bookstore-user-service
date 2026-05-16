@@ -6,10 +6,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import java.security.*;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
+import java.nio.file.Path;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
@@ -17,8 +16,8 @@ import java.util.function.Function;
 /**
  * JWT Service sử dụng thuật toán RS256 (RSA + SHA-256).
  *
- * - User Service: dùng PRIVATE KEY để KÝ (sign) token.
- * - API Gateway: dùng PUBLIC KEY để XÁC THỰC (verify) token.
+ * - User Service: dùng PRIVATE KEY trong {@code /key/private.pem} để ký token.
+ * - API Gateway: dùng PUBLIC KEY trong {@code /key/public.pem} để verify.
  */
 @Service
 public class JwtService {
@@ -29,34 +28,18 @@ public class JwtService {
     private final long refreshExpirationMs;
 
     public JwtService(
-            @Value("${APP_JWT_PRIVATE_KEY}") String privateKeyStr,
-            @Value("${APP_JWT_PUBLIC_KEY}") String publicKeyStr,
+            @Value("${app.jwt.keys-dir:/key}") String keysDir,
+            @Value("${app.jwt.private-key-file:private.pem}") String privateKeyFile,
+            @Value("${app.jwt.public-key-file:public.pem}") String publicKeyFile,
             @Value("${app.jwt.expiration-ms:86400000}") long expirationMs,
             @Value("${app.jwt.refresh-expiration-ms:604800000}") long refreshExpirationMs) {
-        try {
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-
-            // Private key dùng để ký token (PKCS#8)
-            byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyStr);
-            PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-            this.privateKey = keyFactory.generatePrivate(privateKeySpec);
-
-            // Public key dùng để verify token (X.509)
-            byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyStr);
-            X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-            this.publicKey = keyFactory.generatePublic(publicKeySpec);
-
-            this.expirationMs = expirationMs;
-            this.refreshExpirationMs = refreshExpirationMs;
-        } catch (Exception e) {
-            throw new IllegalStateException("Không thể load RSA keypair từ environment variables", e);
-        }
+        Path dir = RsaKeyLoader.resolveKeysDir(keysDir);
+        this.privateKey = RsaKeyLoader.loadPrivateKey(dir, privateKeyFile);
+        this.publicKey = RsaKeyLoader.loadPublicKey(dir, publicKeyFile);
+        this.expirationMs = expirationMs;
+        this.refreshExpirationMs = refreshExpirationMs;
     }
 
-    /**
-     * Tạo JWT token được ký bằng RS256 (private key).
-     * Token chứa subject (username), role, và thời gian hết hạn.
-     */
     public String generateToken(String subject) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + expirationMs);
@@ -68,9 +51,6 @@ public class JwtService {
                 .compact();
     }
 
-    /**
-     * Tạo Refresh Token (thời gian sống dài hơn, không chứa extra claims).
-     */
     public String generateRefreshToken(String subject) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + refreshExpirationMs);
@@ -82,9 +62,6 @@ public class JwtService {
                 .compact();
     }
 
-    /**
-     * Tạo JWT token với custom claims (ví dụ: role, userId).
-     */
     public String generateToken(String subject, Map<String, Object> extraClaims) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + expirationMs);
@@ -101,10 +78,6 @@ public class JwtService {
         return expirationMs / 1000;
     }
 
-    /**
-     * Trích xuất subject (username) từ token.
-     * Sử dụng public key để verify signature.
-     */
     public String extractSubject(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -120,10 +93,6 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration).before(new Date());
     }
 
-    /**
-     * Parse và verify JWT bằng PUBLIC KEY (RS256).
-     * Nếu signature không hợp lệ hoặc token hết hạn → throw Exception.
-     */
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         Claims claims = Jwts.parser()
                 .verifyWith(publicKey)
@@ -133,9 +102,6 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    /**
-     * Lấy public key (dùng để share cho API Gateway nếu cần).
-     */
     public PublicKey getPublicKey() {
         return publicKey;
     }
