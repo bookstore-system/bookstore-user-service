@@ -35,6 +35,16 @@ spec:
             configMapKeyRef:
               name: user-service-config
               key: APP_JWT_REFRESH_EXPIRATION_MS
+        - name: SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE
+        - name: SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE
         - name: DB_HOST
           valueFrom:
             configMapKeyRef:
