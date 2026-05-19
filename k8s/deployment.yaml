@@ -25,6 +25,16 @@ spec:
           value: "prod"
         - name: APP_JWT_KEYS_DIR
           value: "/key"
+        - name: APP_JWT_EXPIRATION_MS
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_JWT_EXPIRATION_MS
+        - name: APP_JWT_REFRESH_EXPIRATION_MS
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_JWT_REFRESH_EXPIRATION_MS
         - name: DB_HOST
           valueFrom:
             configMapKeyRef:
@@ -40,6 +50,31 @@ spec:
             configMapKeyRef:
               name: user-service-config
               key: DB_NAME
+        - name: SPRING_DATA_REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: SPRING_DATA_REDIS_HOST
+        - name: SPRING_DATA_REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: SPRING_DATA_REDIS_PORT
+        - name: SPRING_DATA_REDIS_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: SPRING_DATA_REDIS_USERNAME
+        - name: SPRING_DATA_REDIS_SSL_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: SPRING_DATA_REDIS_SSL_ENABLED
+        - name: SPRING_DATA_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: user-service-secret
+              key: SPRING_DATA_REDIS_PASSWORD
         - name: DB_USERNAME
           valueFrom:
             secretKeyRef:

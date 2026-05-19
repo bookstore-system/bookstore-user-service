@@ -62,7 +62,8 @@ pipeline {
                     file(credentialsId: 'jwt-public-pem', variable: 'JWT_PUBLIC_PEM'),
                     string(credentialsId: 'cloudinary-cloud-name', variable: 'CLOUDINARY_CLOUD_NAME'),
                     string(credentialsId: 'cloudinary-api-key', variable: 'CLOUDINARY_API_KEY'),
-                    string(credentialsId: 'cloudinary-api-secret', variable: 'CLOUDINARY_API_SECRET')
+                    string(credentialsId: 'cloudinary-api-secret', variable: 'CLOUDINARY_API_SECRET'),
+                    string(credentialsId: 'redis-password', variable: 'SPRING_DATA_REDIS_PASSWORD')
                 ]) {
                     sh '''
                 export KUBECONFIG=/var/jenkins_home/.kube/config
@@ -81,6 +82,7 @@ pipeline {
                   --from-literal=CLOUDINARY_CLOUD_NAME="$CLOUDINARY_CLOUD_NAME" \
                   --from-literal=CLOUDINARY_API_KEY="$CLOUDINARY_API_KEY" \
                   --from-literal=CLOUDINARY_API_SECRET="$CLOUDINARY_API_SECRET" \
+                  --from-literal=SPRING_DATA_REDIS_PASSWORD="$SPRING_DATA_REDIS_PASSWORD" \
                   --dry-run=client -o yaml | kubectl apply -f -
 
                 # JWT signing key pair. user-service needs private.pem + public.pem.
