@@ -20,6 +20,19 @@ services:
     networks:
       - bookstore-network
 
+  user-redis:
+    image: redis:7.2-alpine
+    container_name: user-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - bookstore-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   user-service:
     build: 
       context: .
@@ -28,19 +41,31 @@ services:
     depends_on:
       user-db:
         condition: service_healthy
+      user-redis:
+        condition: service_healthy
     ports:
       - "8081:8080"
     volumes:
       - .:/build
       - ~/.m2:/root/.m2
+      - ./key:/key:ro
     command: mvn spring-boot:run -Dspring-boot.run.profiles=docker
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      APP_JWT_KEYS_DIR: /key
       SPRING_DATASOURCE_URL: jdbc:mysql://user-db:3306/bookstore_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: bookstore
       SPRING_DATASOURCE_PASSWORD: bookstore
-      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_DATA_REDIS_HOST: user-redis
+      SPRING_DATA_REDIS_PORT: 6379
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+      APP_JWT_EXPIRATION_MS: "${APP_JWT_EXPIRATION_MS}"
+      APP_JWT_REFRESH_EXPIRATION_MS: "${APP_JWT_REFRESH_EXPIRATION_MS}"
+      CLOUDINARY_ENABLED: true
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
     networks:
       - bookstore-network
 
