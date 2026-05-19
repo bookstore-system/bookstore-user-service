@@ -4,13 +4,7 @@ pipeline {
     environment {
         DOCKER_REGISTRY = 'truongdocker1'
         DOCKER_CREDENTIALS_ID = 'dockerhub-creds'
-        
-        DB_CREDS = credentials('db-creds')
-        APP_JWT_SECRET = credentials('user-service-jwt-secret')
-        
         IMAGE_NAME = 'bookstore-user-service'
-
-        // version nên linh hoạt theo build number (chuẩn CI/CD)
         TAG = "${BUILD_NUMBER}"
 
         K8S_DEPLOYMENT = 'user-service-deployment'
@@ -62,28 +56,46 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh """
+                withCredentials([
+                    usernamePassword(credentialsId: 'db-creds', usernameVariable: 'DB_USERNAME', passwordVariable: 'DB_PASSWORD'),
+                    file(credentialsId: 'jwt-private-pem', variable: 'JWT_PRIVATE_PEM'),
+                    file(credentialsId: 'jwt-public-pem', variable: 'JWT_PUBLIC_PEM'),
+                    string(credentialsId: 'cloudinary-cloud-name', variable: 'CLOUDINARY_CLOUD_NAME'),
+                    string(credentialsId: 'cloudinary-api-key', variable: 'CLOUDINARY_API_KEY'),
+                    string(credentialsId: 'cloudinary-api-secret', variable: 'CLOUDINARY_API_SECRET')
+                ]) {
+                    sh '''
                 export KUBECONFIG=/var/jenkins_home/.kube/config
 
-                # update image tag
-                sed -i "s|image: truongdocker1/bookstore-user-service:latest|image: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${TAG}|g" k8s/deployment.yaml
+                # Update image tag robustly, even if the workspace still has an older build tag.
+                sed -i "s|image: .*${IMAGE_NAME}:.*|image: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${TAG}|g" k8s/deployment.yaml
 
-                # 1. ConfigMap OK (có trong Git)
+                # ConfigMap is safe to keep in Git.
                 kubectl apply -f k8s/configmap.yaml
 
-                # 2. Secret tạo runtime (KHÔNG cần file)
+                # App secret from Jenkins Credentials. Do not apply k8s/secret.yaml with real values.
                 kubectl create secret generic user-service-secret \
-                --from-literal=DB_USERNAME=$DB_CREDS_USR \
-                --from-literal=DB_PASSWORD=$DB_CREDS_PSW \
-                --from-literal=APP_JWT_SECRET=$APP_JWT_SECRET \
-                --dry-run=client -o yaml | kubectl apply -f -
+                  --from-literal=DB_USERNAME="$DB_USERNAME" \
+                  --from-literal=DB_PASSWORD="$DB_PASSWORD" \
+                  --from-literal=CLOUDINARY_ENABLED=true \
+                  --from-literal=CLOUDINARY_CLOUD_NAME="$CLOUDINARY_CLOUD_NAME" \
+                  --from-literal=CLOUDINARY_API_KEY="$CLOUDINARY_API_KEY" \
+                  --from-literal=CLOUDINARY_API_SECRET="$CLOUDINARY_API_SECRET" \
+                  --dry-run=client -o yaml | kubectl apply -f -
 
-                # 3. Deploy app
+                # JWT signing key pair. user-service needs private.pem + public.pem.
+                kubectl create secret generic jwt-keys \
+                  --from-file=private.pem="$JWT_PRIVATE_PEM" \
+                  --from-file=public.pem="$JWT_PUBLIC_PEM" \
+                  --dry-run=client -o yaml | kubectl apply -f -
+
+                # Deploy app.
                 kubectl apply -f k8s/deployment.yaml
                 kubectl apply -f k8s/service.yaml
 
-                kubectl rollout status deployment/${K8S_DEPLOYMENT}
-                """
+                kubectl rollout status deployment/${K8S_DEPLOYMENT} --timeout=180s
+                '''
+                }
             }
         }
     }

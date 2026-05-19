@@ -4,13 +4,13 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
 
-# RS256 JWT — mount Secret/volume tại /key (private.pem + public.pem)
+# RS256 JWT: mount Secret volume at /key (private.pem + public.pem)
 app:
   jwt:
     keys-dir: ${APP_JWT_KEYS_DIR:/key}
@@ -21,6 +21,6 @@ app:
 
 cloudinary:
   enabled: ${CLOUDINARY_ENABLED:true}
-  cloud-name: ${CLOUDINARY_CLOUD_NAME:CLOUDINARY_CLOUD_NAME}
-  api-key: ${CLOUDINARY_API_KEY:CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET:CLOUDINARY_API_SECRET}
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
