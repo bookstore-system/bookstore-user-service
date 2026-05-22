@@ -59,6 +59,7 @@ public class SecurityConfig {
                                                 "/api/v1/auth/verify-otp",
                                                 "/api/v1/auth/confirm-email",
                                                 "/api/v1/auth/refresh-token",
+                                                "/api/v1/users/*/contact-info",
                                                 "/error"
                                         )
                                         .permitAll()
