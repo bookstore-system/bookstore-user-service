@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,6 +34,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     // Thống kê theo status
     long countByStatus(String status);
+
+    long countByCreatedAtAfter(LocalDateTime createdAt);
 
     // Lọc theo status
     Page<User> findByStatus(String status, Pageable pageable);
