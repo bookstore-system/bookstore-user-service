@@ -64,7 +64,7 @@ pipeline {
                     string(credentialsId: 'cloudinary-api-key', variable: 'CLOUDINARY_API_KEY'),
                     string(credentialsId: 'cloudinary-api-secret', variable: 'CLOUDINARY_API_SECRET'),
                     string(credentialsId: 'redis-password', variable: 'SPRING_DATA_REDIS_PASSWORD'),
-                    usernamePassword(credentialsId: 'rabbitmq-creds', usernameVariable: 'RABBITMQ_USERNAME', passwordVariable: 'RABBITMQ_PASSWORD'),
+                    usernamePassword(credentialsId: 'rabbitmq-cred', usernameVariable: 'RABBITMQ_USERNAME', passwordVariable: 'RABBITMQ_PASSWORD'),
                     usernamePassword(credentialsId: 'google-oauth-creds', usernameVariable: 'GOOGLE_CLIENT_ID', passwordVariable: 'GOOGLE_CLIENT_SECRET')
                 ]) {
                     sh '''
