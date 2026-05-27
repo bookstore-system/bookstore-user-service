@@ -6,6 +6,7 @@ import com.notfound.userservice.model.dto.response.AuthResponse;
 import com.notfound.userservice.model.dto.response.IntrospectResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.mapper.UserMapper;
+import com.notfound.userservice.messaging.PasswordResetOtpPublisher;
 import com.notfound.userservice.service.AuthService;
 import com.notfound.userservice.service.OtpService;
 import com.notfound.userservice.service.UserService;
@@ -37,6 +38,7 @@ public class AuthController {
     AuthService authService;
     UserService userService;
     OtpService otpService;
+    PasswordResetOtpPublisher passwordResetOtpPublisher;
 
     /**
      * Đăng ký tài khoản mới
@@ -97,12 +99,12 @@ public class AuthController {
         // 2. Sinh mã OTP và lưu vào Redis
         String otp = otpService.generateOtp(request.getEmail());
 
-        // 3. TODO: Gửi email via RabbitMQ (Sẽ thực hiện ở bước sau)
-        log.info("Mã OTP cho {} là: {}", request.getEmail(), otp);
+        // 3. Gửi event qua RabbitMQ để notification-service gửi email OTP
+        passwordResetOtpPublisher.publish(request.getEmail(), otp);
 
         return ApiResponse.<Void>builder()
                 .code(200)
-                .message("Mã OTP đã được gửi về email (Debug: " + otp + ")")
+                .message("Mã OTP đã được gửi về email")
                 .build();
     }
 
@@ -135,6 +137,10 @@ public class AuthController {
     @PostMapping("/verify-email")
     @Operation(summary = "Gửi email xác thực tài khoản")
     public ApiResponse<Void> verifyEmail(@RequestBody EmailRequest request) {
+        if (!userService.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email không tồn tại trong hệ thống");
+        }
+
         String token = authService.generateEmailVerificationToken(request.getEmail());
         // TODO: Send verification email via Notification Service (RabbitMQ)
         return ApiResponse.<Void>builder()
