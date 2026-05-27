@@ -1,6 +1,7 @@
 package com.notfound.userservice.service;
 
 import com.notfound.userservice.model.dto.request.ChangePasswordRequest;
+import com.notfound.userservice.model.dto.request.GoogleAuthRequest;
 import com.notfound.userservice.model.dto.request.LoginRequest;
 import com.notfound.userservice.model.dto.request.RegisterRequest;
 import com.notfound.userservice.model.dto.response.AuthResponse;
@@ -9,6 +10,10 @@ public interface AuthService {
     AuthResponse login(LoginRequest request);
 
     AuthResponse register(RegisterRequest request);
+
+    AuthResponse loginWithGoogle(GoogleAuthRequest request);
+
+    AuthResponse handleGoogleOAuthCallback(String code);
 
     String generateEmailVerificationToken(String email);
 
