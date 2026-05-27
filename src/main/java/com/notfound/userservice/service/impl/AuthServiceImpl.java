@@ -3,7 +3,6 @@ package com.notfound.userservice.service.impl;
 import com.notfound.userservice.exception.EmailAlreadyInUseException;
 import com.notfound.userservice.config.GoogleOAuthProperties;
 import com.notfound.userservice.model.dto.request.ChangePasswordRequest;
-import com.notfound.userservice.model.dto.request.GoogleAuthRequest;
 import com.notfound.userservice.model.dto.request.LoginRequest;
 import com.notfound.userservice.model.dto.request.RegisterRequest;
 import com.notfound.userservice.model.dto.response.AuthResponse;
@@ -129,17 +128,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public AuthResponse loginWithGoogle(GoogleAuthRequest request) {
-        if (!googleOAuthProperties.hasClientId()) {
-            throw new IllegalArgumentException("Google OAuth client id is not configured");
-        }
-
-        Map<String, Object> googleUserInfo = verifyGoogleCredential(request.getCredential());
-        return buildGoogleAuthResponse(googleUserInfo);
-    }
-
-    @Override
-    @Transactional
     public AuthResponse handleGoogleOAuthCallback(String code) {
         if (code == null || code.isBlank()) {
             throw new IllegalArgumentException("Google authorization code is required");
@@ -192,31 +180,6 @@ public class AuthServiceImpl implements AuthService {
         userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Email không tồn tại trong hệ thống"));
         return jwtService.generateToken(normalizedEmail);
-    }
-
-    private Map<String, Object> verifyGoogleCredential(String credential) {
-        String tokenInfoUrl = "https://oauth2.googleapis.com/tokeninfo?id_token=" + credential;
-        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                tokenInfoUrl,
-                HttpMethod.GET,
-                HttpEntity.EMPTY,
-                new ParameterizedTypeReference<>() {});
-
-        Map<String, Object> body = response.getBody();
-        if (body == null) {
-            throw new IllegalArgumentException("Google credential is invalid");
-        }
-
-        String audience = stringValue(body.get("aud"));
-        if (!googleOAuthProperties.getClientId().equals(audience)) {
-            throw new IllegalArgumentException("Google credential audience is invalid");
-        }
-
-        if (!isGoogleEmailVerified(body.get("email_verified"))) {
-            throw new IllegalArgumentException("Google email is not verified");
-        }
-
-        return body;
     }
 
     private String exchangeCodeForAccessToken(String code) {
@@ -337,13 +300,6 @@ public class AuthServiceImpl implements AuthService {
             suffix++;
         }
         return username;
-    }
-
-    private static boolean isGoogleEmailVerified(Object value) {
-        if (value instanceof Boolean verified) {
-            return verified;
-        }
-        return value != null && "true".equalsIgnoreCase(value.toString());
     }
 
     private static String stringValue(Object value) {

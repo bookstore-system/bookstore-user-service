@@ -17,3 +17,4 @@ app:
     queue-password-reset: ${APP_MESSAGING_QUEUE_PASSWORD_RESET:notification.password_reset_events}
     rk-password-reset: ${APP_MESSAGING_RK_PASSWORD_RESET:user.password_reset}
     otp-expiry-minutes: ${APP_MESSAGING_OTP_EXPIRY_MINUTES:5}
+    email-verification-base-url: ${APP_EMAIL_VERIFICATION_BASE_URL:http://localhost:8080}
