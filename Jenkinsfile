@@ -63,7 +63,8 @@ pipeline {
                     string(credentialsId: 'cloudinary-cloud-name', variable: 'CLOUDINARY_CLOUD_NAME'),
                     string(credentialsId: 'cloudinary-api-key', variable: 'CLOUDINARY_API_KEY'),
                     string(credentialsId: 'cloudinary-api-secret', variable: 'CLOUDINARY_API_SECRET'),
-                    string(credentialsId: 'redis-password', variable: 'SPRING_DATA_REDIS_PASSWORD')
+                    string(credentialsId: 'redis-password', variable: 'SPRING_DATA_REDIS_PASSWORD'),
+                    usernamePassword(credentialsId: 'rabbitmq-creds', usernameVariable: 'RABBITMQ_USERNAME', passwordVariable: 'RABBITMQ_PASSWORD')
                 ]) {
                     sh '''
                 export KUBECONFIG=/var/jenkins_home/.kube/config
@@ -83,6 +84,8 @@ pipeline {
                   --from-literal=CLOUDINARY_API_KEY="$CLOUDINARY_API_KEY" \
                   --from-literal=CLOUDINARY_API_SECRET="$CLOUDINARY_API_SECRET" \
                   --from-literal=SPRING_DATA_REDIS_PASSWORD="$SPRING_DATA_REDIS_PASSWORD" \
+                  --from-literal=RABBITMQ_USERNAME="$RABBITMQ_USERNAME" \
+                  --from-literal=RABBITMQ_PASSWORD="$RABBITMQ_PASSWORD" \
                   --dry-run=client -o yaml | kubectl apply -f -
 
                 # JWT signing key pair. user-service needs private.pem + public.pem.

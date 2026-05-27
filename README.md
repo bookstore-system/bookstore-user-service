@@ -50,6 +50,43 @@ Khi chạy bằng `docker compose`, các biến chính được set trong `docke
   - `SPRING_DATASOURCE_PASSWORD`
   - `SPRING_DATA_REDIS_HOST`
   - `SPRING_DATA_REDIS_PORT`
+- **RabbitMQ / Notification**
+  - `RABBITMQ_HOST` (K8s dùng host RabbitMQ tự quản lý giống order-service)
+  - `RABBITMQ_PORT` (mặc định `5672`)
+  - `RABBITMQ_USERNAME`
+  - `RABBITMQ_PASSWORD`
+  - `RABBITMQ_VIRTUAL_HOST` (K8s mặc định `bookstore`)
+  - `APP_MESSAGING_ENABLED` (mặc định `true`)
+  - `APP_MESSAGING_EXCHANGE_EVENTS` (mặc định `bookstore.events`)
+  - `APP_MESSAGING_QUEUE_PASSWORD_RESET` (mặc định `notification.password_reset_events`)
+  - `APP_MESSAGING_RK_PASSWORD_RESET` (mặc định `user.password_reset`)
+  - `APP_MESSAGING_OTP_EXPIRY_MINUTES` (mặc định `5`)
+
+## RabbitMQ contract gửi OTP
+
+Khi gọi `POST /api/v1/auth/send-otp`, user-service sinh OTP, lưu Redis và publish event JSON sang RabbitMQ để notification-service gửi email.
+
+- Exchange: `bookstore.events` (`topic`, durable)
+- Routing key: `user.password_reset`
+- Queue cho notification-service bind: `notification.password_reset_events` (durable)
+- Content type: JSON
+
+Payload:
+
+```json
+{
+  "eventId": "uuid",
+  "type": "user.password_reset",
+  "occurredAt": "2026-05-27T10:15:30",
+  "userId": null,
+  "email": "u@example.com",
+  "displayName": null,
+  "otp": "123456",
+  "expiresInMinutes": 5
+}
+```
+
+Notification-service cần map payload này vào DTO có các field trên, đặc biệt là `email`, `otp`, `expiresInMinutes`. Service hiện tại đang có routing key `user.password_reset`; nếu DTO cũ chỉ có `resetLink` thì cần bổ sung `otp` và đổi template email sang nội dung mã OTP.
 
 ## API chính
 
@@ -93,4 +130,3 @@ Khi chạy bằng `docker compose`, các biến chính được set trong `docke
 ### Admin Users
 
 - Base path: `GET|POST /api/v1/admin/users` (và các endpoint con như `/statistics`, `/export`, `/top-spenders`, ...)
-
