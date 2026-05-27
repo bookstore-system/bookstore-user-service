@@ -9,6 +9,7 @@ import com.notfound.userservice.model.dto.response.AuthResponse;
 import com.notfound.userservice.model.dto.response.IntrospectResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.mapper.UserMapper;
+import com.notfound.userservice.messaging.EmailVerificationPublisher;
 import com.notfound.userservice.messaging.PasswordResetOtpPublisher;
 import com.notfound.userservice.service.AuthService;
 import com.notfound.userservice.service.OtpService;
@@ -47,6 +48,7 @@ public class AuthController {
     UserService userService;
     OtpService otpService;
     PasswordResetOtpPublisher passwordResetOtpPublisher;
+    EmailVerificationPublisher emailVerificationPublisher;
     GoogleOAuthProperties googleOAuthProperties;
     ObjectMapper objectMapper;
 
@@ -77,21 +79,6 @@ public class AuthController {
         return ApiResponse.<AuthResponse>builder()
                 .code(1000)
                 .message("Đăng nhập thành công!")
-                .result(authResponse)
-                .build();
-    }
-
-    /**
-     * Đăng nhập bằng Google One Tap / Google Identity Services credential.
-     */
-    @PostMapping("/google")
-    @Operation(summary = "Đăng nhập bằng Google credential")
-    public ApiResponse<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleAuthRequest request) {
-        AuthResponse authResponse = authService.loginWithGoogle(request);
-
-        return ApiResponse.<AuthResponse>builder()
-                .code(1000)
-                .message("Đăng nhập Google thành công")
                 .result(authResponse)
                 .build();
     }
@@ -167,7 +154,7 @@ public class AuthController {
         }
 
         String token = authService.generateEmailVerificationToken(request.getEmail());
-        // TODO: Send verification email via Notification Service (RabbitMQ)
+        emailVerificationPublisher.publish(request.getEmail(), token);
         return ApiResponse.<Void>builder()
                 .code(200)
                 .message("Đã gửi email xác thực. Vui lòng kiểm tra hộp thư.")
@@ -179,12 +166,14 @@ public class AuthController {
      */
     @GetMapping("/confirm-email")
     @Operation(summary = "Xác nhận email qua token (query)")
-    public ApiResponse<Void> confirmEmail(@RequestParam("token") String token) {
-        String email = authService.validateEmailVerificationToken(token);
-        return ApiResponse.<Void>builder()
-                .code(200)
-                .message("Xác thực email thành công cho: " + email)
-                .build();
+    public ResponseEntity<Void> confirmEmail(@RequestParam("token") String token) {
+        try {
+            String email = authService.validateEmailVerificationToken(token);
+            return redirectToFrontend("email_verified=true&email=" + urlEncode(email));
+        } catch (Exception e) {
+            log.warn("Email verification failed", e);
+            return redirectToFrontend("error=email_verification_failed");
+        }
     }
 
     /**
