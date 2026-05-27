@@ -139,14 +139,23 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String generateEmailVerificationToken(String email) {
-        // TODO: Implement email verification token generation
-        return jwtService.generateToken(email);
+        String normalizedEmail = email.trim().toLowerCase();
+        userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Email không tồn tại trong hệ thống"));
+        return jwtService.generateToken(normalizedEmail);
     }
 
     @Override
+    @Transactional
     public String validateEmailVerificationToken(String token) {
-        // TODO: Implement email verification token validation
-        return jwtService.extractSubject(token);
+        String email = jwtService.extractSubject(token);
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new IllegalArgumentException("Email xác thực không tồn tại trong hệ thống"));
+
+        user.setIsEmailVerified(true);
+        userRepository.save(user);
+
+        return user.getEmail();
     }
 
     @Override
