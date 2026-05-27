@@ -25,6 +25,9 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(prefix = "app.messaging", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class UserMessagingConfig {
 
+    public static final String EMAIL_VERIFICATION_QUEUE = "notification.email_verification_events";
+    public static final String EMAIL_VERIFICATION_ROUTING_KEY = "user.email_verification";
+
     @Bean
     public ObjectMapper userMessagingObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -57,6 +60,11 @@ public class UserMessagingConfig {
     }
 
     @Bean
+    public Queue emailVerificationQueue() {
+        return QueueBuilder.durable(EMAIL_VERIFICATION_QUEUE).build();
+    }
+
+    @Bean
     public Binding passwordResetBinding(
             Queue passwordResetQueue,
             TopicExchange userEventsExchange,
@@ -64,5 +72,14 @@ public class UserMessagingConfig {
         return BindingBuilder.bind(passwordResetQueue)
                 .to(userEventsExchange)
                 .with(properties.getRkPasswordReset());
+    }
+
+    @Bean
+    public Binding emailVerificationBinding(
+            Queue emailVerificationQueue,
+            TopicExchange userEventsExchange) {
+        return BindingBuilder.bind(emailVerificationQueue)
+                .to(userEventsExchange)
+                .with(EMAIL_VERIFICATION_ROUTING_KEY);
     }
 }
