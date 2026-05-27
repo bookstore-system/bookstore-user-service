@@ -2,6 +2,7 @@ package com.notfound.userservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.notfound.userservice.exception.GlobalExceptionHandler;
+import com.notfound.userservice.messaging.PasswordResetOtpPublisher;
 import com.notfound.userservice.model.dto.request.*;
 import com.notfound.userservice.model.dto.response.AuthResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
@@ -29,6 +30,7 @@ class AuthControllerTest {
     private AuthService authService;
     private UserService userService;
     private OtpService otpService;
+    private PasswordResetOtpPublisher passwordResetOtpPublisher;
     private ObjectMapper objectMapper;
 
     @BeforeEach
@@ -36,9 +38,10 @@ class AuthControllerTest {
         authService = mock(AuthService.class);
         userService = mock(UserService.class);
         otpService = mock(OtpService.class);
+        passwordResetOtpPublisher = mock(PasswordResetOtpPublisher.class);
         objectMapper = new ObjectMapper().findAndRegisterModules();
 
-        AuthController controller = new AuthController(authService, userService, otpService);
+        AuthController controller = new AuthController(authService, userService, otpService, passwordResetOtpPublisher);
         mockMvc =
                 MockMvcBuilders.standaloneSetup(controller)
                         .setControllerAdvice(new GlobalExceptionHandler())
@@ -127,9 +130,10 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("123456")));
+                .andExpect(jsonPath("$.message").value("Mã OTP đã được gửi về email"));
 
         verify(otpService).generateOtp("u@example.com");
+        verify(passwordResetOtpPublisher).publish("u@example.com", "123456");
     }
 
     @Test
@@ -169,6 +173,51 @@ class AuthControllerTest {
     }
 
     @Test
+    void verifyEmail_whenEmailNotExists_returns400() throws Exception {
+        when(userService.existsByEmail("nope@example.com")).thenReturn(false);
+
+        EmailRequest request = new EmailRequest();
+        request.setEmail("nope@example.com");
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        verify(authService, never()).generateEmailVerificationToken(any());
+    }
+
+    @Test
+    void verifyEmail_whenEmailExists_generatesToken() throws Exception {
+        when(userService.existsByEmail("u@example.com")).thenReturn(true);
+        when(authService.generateEmailVerificationToken("u@example.com")).thenReturn("token");
+
+        EmailRequest request = new EmailRequest();
+        request.setEmail("u@example.com");
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        verify(authService).generateEmailVerificationToken("u@example.com");
+    }
+
+    @Test
+    void confirmEmail_whenTokenValid_returnsEmail() throws Exception {
+        when(authService.validateEmailVerificationToken("abc")).thenReturn("u@example.com");
+
+        mockMvc.perform(get("/api/v1/auth/confirm-email").param("token", "abc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("Xác thực email thành công cho: u@example.com"));
+
+        verify(authService).validateEmailVerificationToken("abc");
+    }
+
+    @Test
     void refreshToken_returnsAuthResponse() throws Exception {
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken("rt");
@@ -201,4 +250,3 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.result.username").value("u"));
     }
 }
-
