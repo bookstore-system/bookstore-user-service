@@ -12,4 +12,5 @@ public class UserMessagingProperties {
     private String queuePasswordReset = "notification.password_reset_events";
     private String rkPasswordReset = "user.password_reset";
     private int otpExpiryMinutes = 5;
+    private String emailVerificationBaseUrl = "http://localhost:8080";
 }
