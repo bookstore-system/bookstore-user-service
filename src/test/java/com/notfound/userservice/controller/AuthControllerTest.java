@@ -1,6 +1,7 @@
 package com.notfound.userservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.notfound.userservice.config.GoogleOAuthProperties;
 import com.notfound.userservice.exception.GlobalExceptionHandler;
 import com.notfound.userservice.messaging.PasswordResetOtpPublisher;
 import com.notfound.userservice.model.dto.request.*;
@@ -21,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -31,6 +33,7 @@ class AuthControllerTest {
     private UserService userService;
     private OtpService otpService;
     private PasswordResetOtpPublisher passwordResetOtpPublisher;
+    private GoogleOAuthProperties googleOAuthProperties;
     private ObjectMapper objectMapper;
 
     @BeforeEach
@@ -39,9 +42,17 @@ class AuthControllerTest {
         userService = mock(UserService.class);
         otpService = mock(OtpService.class);
         passwordResetOtpPublisher = mock(PasswordResetOtpPublisher.class);
+        googleOAuthProperties = new GoogleOAuthProperties();
+        googleOAuthProperties.setFrontendRedirectUrl("http://localhost:3000");
         objectMapper = new ObjectMapper().findAndRegisterModules();
 
-        AuthController controller = new AuthController(authService, userService, otpService, passwordResetOtpPublisher);
+        AuthController controller = new AuthController(
+                authService,
+                userService,
+                otpService,
+                passwordResetOtpPublisher,
+                googleOAuthProperties,
+                objectMapper);
         mockMvc =
                 MockMvcBuilders.standaloneSetup(controller)
                         .setControllerAdvice(new GlobalExceptionHandler())
@@ -84,6 +95,22 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.code").value(1000))
                 .andExpect(jsonPath("$.message").value("Đăng nhập thành công!"))
                 .andExpect(jsonPath("$.result.refreshToken").value("rt"));
+    }
+
+    @Test
+    void loginWithGoogle_returnsAuthResponse() throws Exception {
+        GoogleAuthRequest request = new GoogleAuthRequest();
+        request.setCredential("google-id-token");
+
+        when(authService.loginWithGoogle(any(GoogleAuthRequest.class)))
+                .thenReturn(AuthResponse.builder().token("t").refreshToken("rt").build());
+
+        mockMvc.perform(post("/api/v1/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result.token").value("t"));
     }
 
     @Test
@@ -232,10 +259,25 @@ class AuthControllerTest {
     }
 
     @Test
-    void googleCallback_returns501() throws Exception {
+    void googleCallback_redirectsWithToken() throws Exception {
+        when(authService.handleGoogleOAuthCallback("abc"))
+                .thenReturn(AuthResponse.builder()
+                        .token("t")
+                        .refreshToken("rt")
+                        .user(UserResponse.builder().username("u").email("u@example.com").role("CUSTOMER").build())
+                        .build());
+
         mockMvc.perform(get("/api/v1/auth/google/callback").param("code", "abc"))
-                .andExpect(status().isNotImplemented())
-                .andExpect(jsonPath("$.code").value(501));
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("token=t")))
+                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("refreshToken=rt")));
+    }
+
+    @Test
+    void googleCallback_whenCodeMissing_redirectsWithError() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/google/callback"))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", "http://localhost:3000?error=google_invalid_code"));
     }
 
     @Test

@@ -5,6 +5,12 @@ server:
   port: 8080
 
 app:
+  oauth:
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
+      redirect-uri: ${GOOGLE_REDIRECT_URI:}
+      frontend-redirect-url: ${GOOGLE_FRONTEND_REDIRECT_URL:http://localhost:3000}
   messaging:
     enabled: ${APP_MESSAGING_ENABLED:true}
     exchange-events: ${APP_MESSAGING_EXCHANGE_EVENTS:bookstore.events}
