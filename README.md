@@ -61,10 +61,11 @@ Khi chạy bằng `docker compose`, các biến chính được set trong `docke
   - `APP_MESSAGING_QUEUE_PASSWORD_RESET` (mặc định `notification.password_reset_events`)
   - `APP_MESSAGING_RK_PASSWORD_RESET` (mặc định `user.password_reset`)
   - `APP_MESSAGING_OTP_EXPIRY_MINUTES` (mặc định `5`)
+  - `APP_EMAIL_VERIFICATION_BASE_URL` (domain public để tạo link xác thực, ví dụ `https://nhasachcongdong.id.vn`)
 - **Google OAuth**
   - `GOOGLE_CLIENT_ID`
   - `GOOGLE_CLIENT_SECRET`
-  - `GOOGLE_REDIRECT_URI` (callback backend, ví dụ `https://nhasachcongdong.id.vn/api/auth/google/callback`)
+  - `GOOGLE_REDIRECT_URI` (callback backend, ví dụ `https://nhasachcongdong.id.vn/api/v1/auth/google/callback`)
   - `GOOGLE_FRONTEND_REDIRECT_URL` (nơi backend redirect về sau login, ví dụ `https://nhasachcongdong.id.vn`)
 
 ## RabbitMQ contract gửi OTP
@@ -93,13 +94,38 @@ Payload:
 
 Notification-service cần map payload này vào DTO có các field trên, đặc biệt là `email`, `otp`, `expiresInMinutes`. Service hiện tại đang có routing key `user.password_reset`; nếu DTO cũ chỉ có `resetLink` thì cần bổ sung `otp` và đổi template email sang nội dung mã OTP.
 
+## RabbitMQ contract xác thực email
+
+Khi gọi `POST /api/v1/auth/verify-email`, user-service kiểm tra email tồn tại, tạo token xác thực email, dựng link public và publish event JSON sang RabbitMQ để notification-service gửi email.
+
+- Exchange: `bookstore.events` (`topic`, durable)
+- Routing key: `user.email_verification`
+- Queue cho notification-service bind: `notification.email_verification_events` (durable)
+- Content type: JSON
+
+Payload:
+
+```json
+{
+  "eventId": "uuid",
+  "type": "user.email_verification",
+  "occurredAt": "2026-05-27T10:15:30",
+  "userId": null,
+  "email": "u@example.com",
+  "displayName": null,
+  "verificationUrl": "https://nhasachcongdong.id.vn/api/v1/auth/confirm-email?token=...",
+  "expiresInMinutes": 1440
+}
+```
+
+Notification-service chỉ gửi email có link/nút `verificationUrl`. Không tự sinh token và không cập nhật trạng thái user. Khi user bấm link, request đi về `GET /api/v1/auth/confirm-email?token=...`; user-service validate token và set `isEmailVerified = true`.
+
 ## API chính
 
 ### Auth
 
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
-- `POST /api/v1/auth/google`
 - `GET /api/v1/auth/google/callback?code=...`
 - `POST /api/v1/auth/refresh-token`
 - `PUT /api/v1/auth/change-password`

@@ -75,6 +75,7 @@ services:
       GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
       GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/auth/google/callback}"
       GOOGLE_FRONTEND_REDIRECT_URL: "${GOOGLE_FRONTEND_REDIRECT_URL:-http://localhost:3000}"
+      APP_EMAIL_VERIFICATION_BASE_URL: "${APP_EMAIL_VERIFICATION_BASE_URL:-http://localhost:8080}"
     networks:
       - bookstore-network
 
