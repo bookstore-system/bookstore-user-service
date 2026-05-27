@@ -64,7 +64,8 @@ pipeline {
                     string(credentialsId: 'cloudinary-api-key', variable: 'CLOUDINARY_API_KEY'),
                     string(credentialsId: 'cloudinary-api-secret', variable: 'CLOUDINARY_API_SECRET'),
                     string(credentialsId: 'redis-password', variable: 'SPRING_DATA_REDIS_PASSWORD'),
-                    usernamePassword(credentialsId: 'rabbitmq-creds', usernameVariable: 'RABBITMQ_USERNAME', passwordVariable: 'RABBITMQ_PASSWORD')
+                    usernamePassword(credentialsId: 'rabbitmq-creds', usernameVariable: 'RABBITMQ_USERNAME', passwordVariable: 'RABBITMQ_PASSWORD'),
+                    usernamePassword(credentialsId: 'google-oauth-creds', usernameVariable: 'GOOGLE_CLIENT_ID', passwordVariable: 'GOOGLE_CLIENT_SECRET')
                 ]) {
                     sh '''
                 export KUBECONFIG=/var/jenkins_home/.kube/config
@@ -86,6 +87,8 @@ pipeline {
                   --from-literal=SPRING_DATA_REDIS_PASSWORD="$SPRING_DATA_REDIS_PASSWORD" \
                   --from-literal=RABBITMQ_USERNAME="$RABBITMQ_USERNAME" \
                   --from-literal=RABBITMQ_PASSWORD="$RABBITMQ_PASSWORD" \
+                  --from-literal=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+                  --from-literal=GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" \
                   --dry-run=client -o yaml | kubectl apply -f -
 
                 # JWT signing key pair. user-service needs private.pem + public.pem.

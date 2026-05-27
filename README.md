@@ -61,6 +61,11 @@ Khi chạy bằng `docker compose`, các biến chính được set trong `docke
   - `APP_MESSAGING_QUEUE_PASSWORD_RESET` (mặc định `notification.password_reset_events`)
   - `APP_MESSAGING_RK_PASSWORD_RESET` (mặc định `user.password_reset`)
   - `APP_MESSAGING_OTP_EXPIRY_MINUTES` (mặc định `5`)
+- **Google OAuth**
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+  - `GOOGLE_REDIRECT_URI` (callback backend, ví dụ `https://nhasachcongdong.id.vn/api/auth/google/callback`)
+  - `GOOGLE_FRONTEND_REDIRECT_URL` (nơi backend redirect về sau login, ví dụ `https://nhasachcongdong.id.vn`)
 
 ## RabbitMQ contract gửi OTP
 
@@ -94,6 +99,8 @@ Notification-service cần map payload này vào DTO có các field trên, đặ
 
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
+- `POST /api/v1/auth/google`
+- `GET /api/v1/auth/google/callback?code=...`
 - `POST /api/v1/auth/refresh-token`
 - `PUT /api/v1/auth/change-password`
 - `POST /api/v1/auth/send-otp`
