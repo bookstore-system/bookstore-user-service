@@ -3,7 +3,6 @@ package com.notfound.userservice.service.impl;
 import com.notfound.userservice.model.dto.request.LoginRequest;
 import com.notfound.userservice.model.dto.request.RegisterRequest;
 import com.notfound.userservice.config.GoogleOAuthProperties;
-import com.notfound.userservice.model.dto.request.GoogleAuthRequest;
 import com.notfound.userservice.model.dto.response.AuthResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.entity.User;
@@ -71,7 +70,7 @@ class AuthServiceImplTest {
         googleOAuthProperties = new GoogleOAuthProperties();
         googleOAuthProperties.setClientId("google-client-id");
         googleOAuthProperties.setClientSecret("google-client-secret");
-        googleOAuthProperties.setRedirectUri("http://localhost:8080/api/auth/google/callback");
+        googleOAuthProperties.setRedirectUri("http://localhost:8080/api/v1/auth/google/callback");
         googleOAuthProperties.setFrontendRedirectUrl("http://localhost:3000");
 
         authService = new AuthServiceImpl(
@@ -190,47 +189,4 @@ class AuthServiceImplTest {
         assertThrows(BadCredentialsException.class, () -> authService.login(request));
     }
 
-    @Test
-    void loginWithGoogle_createsUserAndReturnsTokens() {
-        GoogleAuthRequest request = new GoogleAuthRequest();
-        request.setCredential("google-id-token");
-
-        Map<String, Object> tokenInfo = Map.of(
-                "aud", "google-client-id",
-                "email", "google@example.com",
-                "email_verified", "true",
-                "name", "Google User",
-                "picture", "https://example.com/avatar.png",
-                "sub", "google-sub");
-
-        when(restTemplate.exchange(
-                eq("https://oauth2.googleapis.com/tokeninfo?id_token=google-id-token"),
-                eq(HttpMethod.GET),
-                eq(HttpEntity.EMPTY),
-                any(ParameterizedTypeReference.class)))
-                .thenReturn(ResponseEntity.ok(tokenInfo));
-        when(userRepository.findByEmailIgnoreCase("google@example.com")).thenReturn(Optional.empty());
-        when(userRepository.existsByUsername("google")).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn("encoded_random_password");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
-            User saved = invocation.getArgument(0);
-            if (saved.getId() == null) {
-                saved.setId(UUID.randomUUID());
-            }
-            return saved;
-        });
-        when(jwtService.generateToken(anyString(), any(Map.class))).thenReturn("google_jwt");
-        when(jwtService.generateRefreshToken(anyString())).thenReturn("google_refresh");
-        when(userMapper.toUserResponse(any(User.class))).thenReturn(UserResponse.builder()
-                .username("google")
-                .email("google@example.com")
-                .role("CUSTOMER")
-                .build());
-
-        AuthResponse response = authService.loginWithGoogle(request);
-
-        assertEquals("google_jwt", response.getToken());
-        assertEquals("google_refresh", response.getRefreshToken());
-        verify(userRepository, atLeastOnce()).save(any(User.class));
-    }
 }

@@ -3,6 +3,7 @@ package com.notfound.userservice.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.notfound.userservice.config.GoogleOAuthProperties;
 import com.notfound.userservice.exception.GlobalExceptionHandler;
+import com.notfound.userservice.messaging.EmailVerificationPublisher;
 import com.notfound.userservice.messaging.PasswordResetOtpPublisher;
 import com.notfound.userservice.model.dto.request.*;
 import com.notfound.userservice.model.dto.response.AuthResponse;
@@ -33,6 +34,7 @@ class AuthControllerTest {
     private UserService userService;
     private OtpService otpService;
     private PasswordResetOtpPublisher passwordResetOtpPublisher;
+    private EmailVerificationPublisher emailVerificationPublisher;
     private GoogleOAuthProperties googleOAuthProperties;
     private ObjectMapper objectMapper;
 
@@ -42,6 +44,7 @@ class AuthControllerTest {
         userService = mock(UserService.class);
         otpService = mock(OtpService.class);
         passwordResetOtpPublisher = mock(PasswordResetOtpPublisher.class);
+        emailVerificationPublisher = mock(EmailVerificationPublisher.class);
         googleOAuthProperties = new GoogleOAuthProperties();
         googleOAuthProperties.setFrontendRedirectUrl("http://localhost:3000");
         objectMapper = new ObjectMapper().findAndRegisterModules();
@@ -51,6 +54,7 @@ class AuthControllerTest {
                 userService,
                 otpService,
                 passwordResetOtpPublisher,
+                emailVerificationPublisher,
                 googleOAuthProperties,
                 objectMapper);
         mockMvc =
@@ -95,22 +99,6 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.code").value(1000))
                 .andExpect(jsonPath("$.message").value("Đăng nhập thành công!"))
                 .andExpect(jsonPath("$.result.refreshToken").value("rt"));
-    }
-
-    @Test
-    void loginWithGoogle_returnsAuthResponse() throws Exception {
-        GoogleAuthRequest request = new GoogleAuthRequest();
-        request.setCredential("google-id-token");
-
-        when(authService.loginWithGoogle(any(GoogleAuthRequest.class)))
-                .thenReturn(AuthResponse.builder().token("t").refreshToken("rt").build());
-
-        mockMvc.perform(post("/api/v1/auth/google")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(1000))
-                .andExpect(jsonPath("$.result.token").value("t"));
     }
 
     @Test
@@ -213,10 +201,11 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.status").value(400));
 
         verify(authService, never()).generateEmailVerificationToken(any());
+        verify(emailVerificationPublisher, never()).publish(any(), any());
     }
 
     @Test
-    void verifyEmail_whenEmailExists_generatesToken() throws Exception {
+    void verifyEmail_whenEmailExists_generatesTokenAndPublishesEmailEvent() throws Exception {
         when(userService.existsByEmail("u@example.com")).thenReturn(true);
         when(authService.generateEmailVerificationToken("u@example.com")).thenReturn("token");
 
@@ -230,6 +219,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.code").value(200));
 
         verify(authService).generateEmailVerificationToken("u@example.com");
+        verify(emailVerificationPublisher).publish("u@example.com", "token");
     }
 
     @Test
@@ -237,11 +227,21 @@ class AuthControllerTest {
         when(authService.validateEmailVerificationToken("abc")).thenReturn("u@example.com");
 
         mockMvc.perform(get("/api/v1/auth/confirm-email").param("token", "abc"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.message").value("Xác thực email thành công cho: u@example.com"));
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", "http://localhost:3000?email_verified=true&email=u%40example.com"));
 
         verify(authService).validateEmailVerificationToken("abc");
+    }
+
+    @Test
+    void confirmEmail_whenTokenInvalid_redirectsWithError() throws Exception {
+        when(authService.validateEmailVerificationToken("bad")).thenThrow(new IllegalArgumentException("invalid"));
+
+        mockMvc.perform(get("/api/v1/auth/confirm-email").param("token", "bad"))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", "http://localhost:3000?error=email_verification_failed"));
+
+        verify(authService).validateEmailVerificationToken("bad");
     }
 
     @Test
