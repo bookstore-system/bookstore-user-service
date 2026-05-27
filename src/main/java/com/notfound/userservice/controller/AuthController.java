@@ -1,11 +1,16 @@
 package com.notfound.userservice.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.notfound.userservice.config.GoogleOAuthProperties;
 import com.notfound.userservice.model.dto.request.*;
 import com.notfound.userservice.model.dto.response.ApiResponse;
 import com.notfound.userservice.model.dto.response.AuthResponse;
 import com.notfound.userservice.model.dto.response.IntrospectResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.mapper.UserMapper;
+import com.notfound.userservice.messaging.EmailVerificationPublisher;
+import com.notfound.userservice.messaging.PasswordResetOtpPublisher;
 import com.notfound.userservice.service.AuthService;
 import com.notfound.userservice.service.OtpService;
 import com.notfound.userservice.service.UserService;
@@ -17,10 +22,15 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Controller xử lý các chức năng xác thực và phân quyền
@@ -37,6 +47,10 @@ public class AuthController {
     AuthService authService;
     UserService userService;
     OtpService otpService;
+    PasswordResetOtpPublisher passwordResetOtpPublisher;
+    EmailVerificationPublisher emailVerificationPublisher;
+    GoogleOAuthProperties googleOAuthProperties;
+    ObjectMapper objectMapper;
 
     /**
      * Đăng ký tài khoản mới
@@ -97,12 +111,12 @@ public class AuthController {
         // 2. Sinh mã OTP và lưu vào Redis
         String otp = otpService.generateOtp(request.getEmail());
 
-        // 3. TODO: Gửi email via RabbitMQ (Sẽ thực hiện ở bước sau)
-        log.info("Mã OTP cho {} là: {}", request.getEmail(), otp);
+        // 3. Gửi event qua RabbitMQ để notification-service gửi email OTP
+        passwordResetOtpPublisher.publish(request.getEmail(), otp);
 
         return ApiResponse.<Void>builder()
                 .code(200)
-                .message("Mã OTP đã được gửi về email (Debug: " + otp + ")")
+                .message("Mã OTP đã được gửi về email")
                 .build();
     }
 
@@ -135,8 +149,12 @@ public class AuthController {
     @PostMapping("/verify-email")
     @Operation(summary = "Gửi email xác thực tài khoản")
     public ApiResponse<Void> verifyEmail(@RequestBody EmailRequest request) {
+        if (!userService.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email không tồn tại trong hệ thống");
+        }
+
         String token = authService.generateEmailVerificationToken(request.getEmail());
-        // TODO: Send verification email via Notification Service (RabbitMQ)
+        emailVerificationPublisher.publish(request.getEmail(), token);
         return ApiResponse.<Void>builder()
                 .code(200)
                 .message("Đã gửi email xác thực. Vui lòng kiểm tra hộp thư.")
@@ -148,12 +166,14 @@ public class AuthController {
      */
     @GetMapping("/confirm-email")
     @Operation(summary = "Xác nhận email qua token (query)")
-    public ApiResponse<Void> confirmEmail(@RequestParam("token") String token) {
-        String email = authService.validateEmailVerificationToken(token);
-        return ApiResponse.<Void>builder()
-                .code(200)
-                .message("Xác thực email thành công cho: " + email)
-                .build();
+    public ResponseEntity<Void> confirmEmail(@RequestParam("token") String token) {
+        try {
+            String email = authService.validateEmailVerificationToken(token);
+            return redirectToFrontend("email_verified=true&email=" + urlEncode(email));
+        } catch (Exception e) {
+            log.warn("Email verification failed", e);
+            return redirectToFrontend("error=email_verification_failed");
+        }
     }
 
     /**
@@ -170,18 +190,46 @@ public class AuthController {
                 .build();
     }
 
-    /**
-     * Alias endpoint để tương thích với hệ thống monolith cũ: /api/auth/google/callback
-     * User-service hiện chưa hỗ trợ Google OAuth flow.
-     */
     @GetMapping("/google/callback")
-    @Operation(summary = "Google OAuth callback (chưa hỗ trợ trong user-service)")
-    public ResponseEntity<ApiResponse<Void>> googleCallback(@RequestParam("code") String code) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-                .body(ApiResponse.<Void>builder()
-                        .code(HttpStatus.NOT_IMPLEMENTED.value())
-                        .message("User-service chưa hỗ trợ Google OAuth. Hãy dùng endpoint monolith hoặc implement OAuth flow trong user-service.")
-                        .build());
+    @Operation(summary = "Google OAuth callback")
+    public ResponseEntity<Void> googleCallback(@RequestParam(value = "code", required = false) String code) {
+        if (code == null || code.isBlank()) {
+            return redirectToFrontend("error=google_invalid_code");
+        }
+
+        try {
+            AuthResponse authResponse = authService.handleGoogleOAuthCallback(code);
+            StringBuilder query = new StringBuilder()
+                    .append("token=").append(urlEncode(authResponse.getToken()));
+
+            if (authResponse.getRefreshToken() != null) {
+                query.append("&refreshToken=").append(urlEncode(authResponse.getRefreshToken()));
+            }
+            if (authResponse.getUser() != null) {
+                query.append("&user=").append(urlEncode(objectMapper.writeValueAsString(authResponse.getUser())));
+            }
+
+            return redirectToFrontend(query.toString());
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize Google user response", e);
+            return redirectToFrontend("error=google_login_failed");
+        } catch (Exception e) {
+            log.error("Google OAuth callback failed", e);
+            return redirectToFrontend("error=google_login_failed");
+        }
+    }
+
+    private ResponseEntity<Void> redirectToFrontend(String query) {
+        String baseUrl = googleOAuthProperties.getFrontendRedirectUrl();
+        String separator = baseUrl.contains("?") ? "&" : "?";
+        URI location = URI.create(baseUrl + separator + query);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, location.toString())
+                .build();
+    }
+
+    private static String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     /**
