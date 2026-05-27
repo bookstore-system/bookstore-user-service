@@ -2,6 +2,7 @@ package com.notfound.userservice.service.impl;
 
 import com.notfound.userservice.model.dto.request.LoginRequest;
 import com.notfound.userservice.model.dto.request.RegisterRequest;
+import com.notfound.userservice.config.GoogleOAuthProperties;
 import com.notfound.userservice.model.dto.response.AuthResponse;
 import com.notfound.userservice.model.dto.response.UserResponse;
 import com.notfound.userservice.model.entity.User;
@@ -20,6 +21,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -49,7 +55,11 @@ class AuthServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @InjectMocks
+    @Mock
+    private RestTemplate restTemplate;
+
+    private GoogleOAuthProperties googleOAuthProperties;
+
     private AuthServiceImpl authService;
 
     private User mockUser;
@@ -57,6 +67,21 @@ class AuthServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        googleOAuthProperties = new GoogleOAuthProperties();
+        googleOAuthProperties.setClientId("google-client-id");
+        googleOAuthProperties.setClientSecret("google-client-secret");
+        googleOAuthProperties.setRedirectUri("http://localhost:8080/api/v1/auth/google/callback");
+        googleOAuthProperties.setFrontendRedirectUrl("http://localhost:3000");
+
+        authService = new AuthServiceImpl(
+                userRepository,
+                passwordEncoder,
+                authenticationManager,
+                jwtService,
+                userMapper,
+                restTemplate,
+                googleOAuthProperties);
+
         mockUser = User.builder()
                 .id(UUID.randomUUID())
                 .username("testuser")
@@ -163,4 +188,5 @@ class AuthServiceImplTest {
         // Act & Assert
         assertThrows(BadCredentialsException.class, () -> authService.login(request));
     }
+
 }

@@ -74,6 +74,71 @@ spec:
             configMapKeyRef:
               name: user-service-config
               key: SPRING_DATA_REDIS_SSL_ENABLED
+        - name: RABBITMQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: RABBITMQ_HOST
+        - name: RABBITMQ_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: RABBITMQ_PORT
+        - name: RABBITMQ_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: user-service-secret
+              key: RABBITMQ_USERNAME
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: user-service-secret
+              key: RABBITMQ_PASSWORD
+        - name: RABBITMQ_VIRTUAL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: RABBITMQ_VIRTUAL_HOST
+        - name: APP_MESSAGING_EXCHANGE_EVENTS
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_MESSAGING_EXCHANGE_EVENTS
+        - name: APP_MESSAGING_QUEUE_PASSWORD_RESET
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_MESSAGING_QUEUE_PASSWORD_RESET
+        - name: APP_MESSAGING_RK_PASSWORD_RESET
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_MESSAGING_RK_PASSWORD_RESET
+        - name: APP_MESSAGING_OTP_EXPIRY_MINUTES
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_MESSAGING_OTP_EXPIRY_MINUTES
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: user-service-secret
+              key: GOOGLE_CLIENT_ID
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: user-service-secret
+              key: GOOGLE_CLIENT_SECRET
+        - name: GOOGLE_REDIRECT_URI
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: GOOGLE_REDIRECT_URI
+        - name: GOOGLE_FRONTEND_REDIRECT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: GOOGLE_FRONTEND_REDIRECT_URL
         - name: SPRING_DATA_REDIS_PASSWORD
           valueFrom:
             secretKeyRef:

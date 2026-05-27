@@ -10,6 +10,8 @@ public interface AuthService {
 
     AuthResponse register(RegisterRequest request);
 
+    AuthResponse handleGoogleOAuthCallback(String code);
+
     String generateEmailVerificationToken(String email);
 
     String validateEmailVerificationToken(String token);
