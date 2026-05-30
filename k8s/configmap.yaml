@@ -18,7 +18,7 @@ data:
   APP_MESSAGING_RK_PASSWORD_RESET: "user.password_reset"
   APP_MESSAGING_OTP_EXPIRY_MINUTES: "5"
   APP_EMAIL_VERIFICATION_BASE_URL: "https://nhasachcongdong.id.vn"
-  GOOGLE_REDIRECT_URI: "https://nhasachcongdong.id.vn/api/v1/auth/google/callback"
+  GOOGLE_REDIRECT_URI: "https://api.nhasachcongdong.id.vn/api/v1/auth/google/callback"
   GOOGLE_FRONTEND_REDIRECT_URL: "https://nhasachcongdong.id.vn"
   APP_JWT_EXPIRATION_MS: "86400000"
   APP_JWT_REFRESH_EXPIRATION_MS: "604800000"

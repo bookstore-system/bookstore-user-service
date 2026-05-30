@@ -193,6 +193,8 @@ public class AuthServiceImpl implements AuthService {
         params.add("redirect_uri", googleOAuthProperties.getRedirectUri());
         params.add("grant_type", "authorization_code");
 
+        log.info("Exchanging Google authorization code for access token at URI: {}", googleOAuthProperties.getRedirectUri());
+
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 "https://oauth2.googleapis.com/token",
                 HttpMethod.POST,

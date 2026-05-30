@@ -119,6 +119,11 @@ spec:
             configMapKeyRef:
               name: user-service-config
               key: APP_MESSAGING_OTP_EXPIRY_MINUTES
+        - name: APP_EMAIL_VERIFICATION_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_EMAIL_VERIFICATION_BASE_URL
         - name: GOOGLE_CLIENT_ID
           valueFrom:
             secretKeyRef:
