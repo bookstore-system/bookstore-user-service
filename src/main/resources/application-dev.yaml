@@ -31,6 +31,11 @@ app:
     public-key-file: public.pem
     expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
     refresh-expiration-ms: ${APP_JWT_REFRESH_EXPIRATION_MS:604800000}
+  auth:
+    cookie:
+      secure: ${APP_AUTH_COOKIE_SECURE:false}
+      same-site: ${APP_AUTH_COOKIE_SAME_SITE:Lax}
+      domain: "${APP_AUTH_COOKIE_DOMAIN:}"
 
 # Cloudinary — upload avatar PUT /api/v1/users/profile (giống monolith bookstore/avatars).
 # Ví dụ .env: CLOUDINARY_ENABLED=true, CLOUDINARY_CLOUD_NAME=..., CLOUDINARY_API_KEY=..., CLOUDINARY_API_SECRET=...
