@@ -169,7 +169,7 @@ public class AdminStatisticsController {
     }
 
     private boolean isCountable(String status) {
-        return status == null || !"CANCELLED".equalsIgnoreCase(status);
+        return "DELIVERED".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status);
     }
 
     private LocalDate parseDate(String value, LocalDate fallback) {

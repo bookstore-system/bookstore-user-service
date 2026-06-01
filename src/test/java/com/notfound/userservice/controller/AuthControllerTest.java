@@ -259,7 +259,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void googleCallback_redirectsWithToken() throws Exception {
+    void googleCallback_redirectsWithAuthCookies() throws Exception {
         when(authService.handleGoogleOAuthCallback("abc"))
                 .thenReturn(AuthResponse.builder()
                         .token("t")
@@ -269,8 +269,12 @@ class AuthControllerTest {
 
         mockMvc.perform(get("/api/v1/auth/google/callback").param("code", "abc"))
                 .andExpect(status().isFound())
-                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("token=t")))
-                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("refreshToken=rt")));
+                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("login=google")))
+                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("user=")))
+                .andExpect(header().stringValues("Set-Cookie",
+                        org.hamcrest.Matchers.allOf(
+                                org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.containsString("access_token=t")),
+                                org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.containsString("refresh_token=rt")))));
     }
 
     @Test

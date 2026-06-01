@@ -35,6 +35,21 @@ spec:
             configMapKeyRef:
               name: user-service-config
               key: APP_JWT_REFRESH_EXPIRATION_MS
+        - name: APP_AUTH_COOKIE_SECURE
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_AUTH_COOKIE_SECURE
+        - name: APP_AUTH_COOKIE_SAME_SITE
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_AUTH_COOKIE_SAME_SITE
+        - name: APP_AUTH_COOKIE_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: user-service-config
+              key: APP_AUTH_COOKIE_DOMAIN
         - name: SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE
           value: "20MB"
         - name: SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE
