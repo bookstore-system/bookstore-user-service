@@ -21,13 +21,17 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -44,6 +48,9 @@ import java.nio.charset.StandardCharsets;
 @Tag(name = "Auth", description = "Đăng ký, đăng nhập, refresh token, OTP, xác thực email, đổi mật khẩu")
 public class AuthController {
 
+    private static final String ACCESS_TOKEN_COOKIE = "access_token";
+    private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
+
     AuthService authService;
     UserService userService;
     OtpService otpService;
@@ -52,18 +59,39 @@ public class AuthController {
     GoogleOAuthProperties googleOAuthProperties;
     ObjectMapper objectMapper;
 
+    @NonFinal
+    @Value("${app.jwt.expiration-ms:86400000}")
+    long accessTokenExpirationMs;
+
+    @NonFinal
+    @Value("${app.jwt.refresh-expiration-ms:604800000}")
+    long refreshTokenExpirationMs;
+
+    @NonFinal
+    @Value("${app.auth.cookie.secure:false}")
+    boolean secureCookies;
+
+    @NonFinal
+    @Value("${app.auth.cookie.same-site:Lax}")
+    String cookieSameSite;
+
+    @NonFinal
+    @Value("${app.auth.cookie.domain:}")
+    String cookieDomain;
+
     /**
      * Đăng ký tài khoản mới
      */
     @PostMapping("/register")
     @Operation(summary = "Đăng ký tài khoản")
-    public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse authResponse = authService.register(request);
-        return ApiResponse.<AuthResponse>builder()
+        ApiResponse<AuthResponse> response = ApiResponse.<AuthResponse>builder()
                 .code(1000)
                 .message("Đăng ký thành công")
                 .result(authResponse)
                 .build();
+        return withAuthCookies(response, authResponse);
     }
 
     /**
@@ -71,16 +99,17 @@ public class AuthController {
      */
     @PostMapping("/login")
     @Operation(summary = "Đăng nhập")
-    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse authResponse = authService.login(request);
 
         log.info("Đăng nhập thành công cho user: {}");
 
-        return ApiResponse.<AuthResponse>builder()
+        ApiResponse<AuthResponse> response = ApiResponse.<AuthResponse>builder()
                 .code(1000)
                 .message("Đăng nhập thành công!")
                 .result(authResponse)
                 .build();
+        return withAuthCookies(response, authResponse);
     }
 
     /**
@@ -181,13 +210,37 @@ public class AuthController {
      */
     @PostMapping("/refresh-token")
     @Operation(summary = "Làm mới access token")
-    public ApiResponse<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        AuthResponse authResponse = authService.refreshToken(request.getRefreshToken());
-        return ApiResponse.<AuthResponse>builder()
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
+            @RequestBody(required = false) RefreshTokenRequest request,
+            @CookieValue(value = REFRESH_TOKEN_COOKIE, required = false) String refreshTokenCookie) {
+        String refreshToken = request != null && request.getRefreshToken() != null && !request.getRefreshToken().isBlank()
+                ? request.getRefreshToken()
+                : refreshTokenCookie;
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new IllegalArgumentException("Refresh token không được để trống");
+        }
+
+        AuthResponse authResponse = authService.refreshToken(refreshToken);
+        ApiResponse<AuthResponse> response = ApiResponse.<AuthResponse>builder()
                 .code(1000)
                 .message("Làm mới token thành công")
                 .result(authResponse)
                 .build();
+        return withAuthCookies(response, authResponse);
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Đăng xuất")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .code(1000)
+                .message("Đăng xuất thành công")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, expiredCookie(ACCESS_TOKEN_COOKIE).toString())
+                .header(HttpHeaders.SET_COOKIE, expiredCookie(REFRESH_TOKEN_COOKIE).toString())
+                .body(response);
     }
 
     @GetMapping("/google/callback")
@@ -199,17 +252,12 @@ public class AuthController {
 
         try {
             AuthResponse authResponse = authService.handleGoogleOAuthCallback(code);
-            StringBuilder query = new StringBuilder()
-                    .append("token=").append(urlEncode(authResponse.getToken()));
-
-            if (authResponse.getRefreshToken() != null) {
-                query.append("&refreshToken=").append(urlEncode(authResponse.getRefreshToken()));
-            }
+            StringBuilder query = new StringBuilder("login=google");
             if (authResponse.getUser() != null) {
                 query.append("&user=").append(urlEncode(objectMapper.writeValueAsString(authResponse.getUser())));
             }
 
-            return redirectToFrontend(query.toString());
+            return redirectToFrontend(query.toString(), authResponse);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize Google user response", e);
             return redirectToFrontend("error=google_login_failed");
@@ -220,16 +268,72 @@ public class AuthController {
     }
 
     private ResponseEntity<Void> redirectToFrontend(String query) {
+        return redirectToFrontend(query, null);
+    }
+
+    private ResponseEntity<Void> redirectToFrontend(String query, AuthResponse authResponse) {
         String baseUrl = googleOAuthProperties.getFrontendRedirectUrl();
         String separator = baseUrl.contains("?") ? "&" : "?";
         URI location = URI.create(baseUrl + separator + query);
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .header(HttpHeaders.LOCATION, location.toString())
-                .build();
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, location.toString());
+        if (authResponse != null) {
+            addAuthCookieHeaders(builder, authResponse);
+        }
+        return builder.build();
     }
 
     private static String urlEncode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private ResponseEntity<ApiResponse<AuthResponse>> withAuthCookies(
+            ApiResponse<AuthResponse> response,
+            AuthResponse authResponse) {
+        ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
+        addAuthCookieHeaders(builder, authResponse);
+        return builder.body(response);
+    }
+
+    private void addAuthCookieHeaders(ResponseEntity.BodyBuilder builder, AuthResponse authResponse) {
+        if (authResponse.getToken() != null && !authResponse.getToken().isBlank()) {
+            builder.header(HttpHeaders.SET_COOKIE, authCookie(
+                    ACCESS_TOKEN_COOKIE,
+                    authResponse.getToken(),
+                    Duration.ofMillis(accessTokenExpirationMs)).toString());
+        }
+        if (authResponse.getRefreshToken() != null && !authResponse.getRefreshToken().isBlank()) {
+            builder.header(HttpHeaders.SET_COOKIE, authCookie(
+                    REFRESH_TOKEN_COOKIE,
+                    authResponse.getRefreshToken(),
+                    Duration.ofMillis(refreshTokenExpirationMs)).toString());
+        }
+    }
+
+    private ResponseCookie authCookie(String name, String value, Duration maxAge) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
+                .httpOnly(true)
+                .secure(secureCookies)
+                .sameSite(cookieSameSite)
+                .path("/")
+                .maxAge(maxAge);
+        if (cookieDomain != null && !cookieDomain.isBlank()) {
+            builder.domain(cookieDomain);
+        }
+        return builder.build();
+    }
+
+    private ResponseCookie expiredCookie(String name) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, "")
+                .httpOnly(true)
+                .secure(secureCookies)
+                .sameSite(cookieSameSite)
+                .path("/")
+                .maxAge(Duration.ZERO);
+        if (cookieDomain != null && !cookieDomain.isBlank()) {
+            builder.domain(cookieDomain);
+        }
+        return builder.build();
     }
 
     /**
